@@ -64,6 +64,7 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
   <div class="controls">
     <button id="play" type="button">Pause</button>
     <button id="replay" type="button">Replay</button>
+    <button id="sound" type="button" aria-pressed="false">Sound off</button>
     <div class="speed" role="group" aria-label="Playback speed">
       <button type="button" data-s="1" aria-pressed="true">1×</button>
       <button type="button" data-s="0.5" aria-pressed="false">½×</button>
@@ -80,7 +81,7 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
     <div class="head" id="head"></div>
   </div>
 
-  <p class="note">Click a beat on the timeline to jump to it. Slow the playback to ¼× to see the glass and debris. <kbd>Space</kbd> pauses, <kbd>R</kbd> replays.</p>
+  <p class="note">Click a beat on the timeline to jump to it. Slow the playback to ¼× to see the glass and debris. Turn on sound for the charge hum, the beam roar and the blast. <kbd>Space</kbd> pauses, <kbd>R</kbd> replays.</p>
 </main>
 
 <script>
@@ -261,7 +262,7 @@ function computeState(t){
     const full=Math.hypot(IMP.x-sp.x,IMP.y-sp.y), ang=Math.atan2(IMP.y-sp.y,IMP.x-sp.x);
     const prog=ease(clamp((t-BEAM_START)/(IMPACT-BEAM_START),0,1));
     const tail=sstep(BEAM_END,BEAM_END+.45,t);
-    const w=31*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
+    const w=54*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
     const o={x:sp.x+Math.cos(ang)*full*tail, y:sp.y+Math.sin(ang)*full*tail};
     beam={o, ang, len:Math.max(0,full*prog-full*tail), full, w, tail, prog};
   }
@@ -301,16 +302,16 @@ function update(dt){
   const t=T, S=computeState(t);
   const wind = .25 + S.c*1.1 + (S.beam?1.2:0);
   // events
-  if(!ev.fire && t>=FIRE){ ev.fire=1; rings.push({x:S.sp.x,y:S.sp.y,t0:t,dur:.4,maxR:190,w:14,col:'190,230,255'});
+  if(!ev.fire && t>=FIRE){ ev.fire=1; snd('fire'); rings.push({x:S.sp.x,y:S.sp.y,t0:t,dur:.4,maxR:190,w:14,col:'190,230,255'});
     for(let i=0;i<40;i++){const a=R(0,6.283),v=R(120,420);add({type:'spark',x:S.sp.x,y:S.sp.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,max:R(.2,.45)});}
     for(const p of parts) if(p.type==='pebble'){p.vx-=R(180,380);p.vy-=R(40,140);} }
-  if(!ev.impact && t>=IMPACT){ ev.impact=1;
+  if(!ev.impact && t>=IMPACT){ ev.impact=1; snd('impact');
     rings.push({x:IMP.x,y:IMP.y,t0:t,dur:.95,maxR:780,w:46,col:'170,220,255'});
     rings.push({x:IMP.x,y:IMP.y,t0:t+.08,dur:.6,maxR:320,w:20,col:'255,255,255'});
     spawnDebris(70,false,520); spawnSparks(240,false); spawnSmoke(26,40,false); }
   if(!ev.wave && t>=IMPACT+.62){ ev.wave=1;
     for(let i=0;i<40;i++) add({type:'dust',x:HERO.x+R(-140,140),y:HERO.y-R(0,6),vx:R(-260,-80),vy:R(-60,-10),max:R(1,2),size:R(3,8)}); }
-  if(!ev.blast && t>=BEAM_END+.02){ ev.blast=1;
+  if(!ev.blast && t>=BEAM_END+.02){ ev.blast=1; snd('blast');
     rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.25,maxR:1150,w:60,col:'200,230,255'});
     rings.push({x:IMP.x,y:IMP.y,t0:t+.05,dur:.8,maxR:420,w:26,col:'255,200,150'});
     spawnDebris(110,true,700); spawnSparks(260,true); spawnSmoke(46,70,true);
@@ -345,7 +346,7 @@ function update(dt){
   // windows shatter wave
   const rC = t<IMPACT?0 : t<BEAM_END ? Math.min(250,(t-IMPACT)*330) : 250+Math.min(100,(t-BEAM_END)*450);
   for(const w of TW){
-    if(w.broken<0 && w.d<rC){ w.broken=t;
+    if(w.broken<0 && w.d<rC){ w.broken=t; snd('glass');
       if(w.d>S.cr*.9){ const n=3+(Math.random()*3|0); for(let i=0;i<n;i++){ const dx=w.x+w.w/2-IMP.x, dy=w.y+w.h/2-IMP.y, dl=Math.hypot(dx,dy)||1, v=R(80,280);
         add({type:'glass',x:w.x+R(0,w.w),y:w.y+R(0,w.h),vx:dx/dl*v+R(-60,60),vy:dy/dl*v-R(20,140),rot:R(0,6),vr:R(-14,14),max:R(2.5,4.5),size:R(2,5.5),seed:R(0,6)}); } } }
   }
@@ -640,9 +641,9 @@ function drawGlowOverlays(t,S){
   const rad=(x,y,r,col,a)=>{ if(a<=0.002) return; const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,`rgba(${col},${a})`); g.addColorStop(.35,`rgba(${col},${a*.35})`); g.addColorStop(1,`rgba(${col},0)`); ctx.fillStyle=g; ctx.fillRect(x-r,y-r,r*2,r*2); };
   if(t<FIRE && S.c>0) rad(S.sp.x,S.sp.y,80+420*S.c,'50,130,255',.4*S.c);
   if(S.beam){ const b=S.beam, k=1-b.tail;
-    rad(b.o.x,b.o.y,520,'60,140,255',.6*k);
-    ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=260; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
-    if(t>IMPACT) rad(IMP.x,IMP.y,720,'90,160,255',.7*k);
+    rad(b.o.x,b.o.y,700,'60,140,255',.65*k);
+    ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=440; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
+    if(t>IMPACT) rad(IMP.x,IMP.y,900,'90,160,255',.75*k);
   }
   if(t>BEAM_END){ const k=Math.exp(-(t-BEAM_END)*.45); rad(IMP.x,IMP.y+20,380,'255,120,50',.35*k*(0.85+0.15*Math.sin(t*11))); }
   ctx.globalCompositeOperation='source-over';
@@ -702,17 +703,17 @@ function drawBeam(t,S){
   ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.2;
   for(let k=0;k<10;k++){ const x=((t*2200+k*131)%Math.max(1,len)); const y=Math.sin(k*7.1+t*13)*w*.55; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+60,y); ctx.stroke(); }
   // muzzle flare at hands
-  if(b.tail<.05){ const mr=w*2.4*(1+.1*Math.sin(t*50)); const g=ctx.createRadialGradient(0,0,0,0,0,mr); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.35,'rgba(150,215,255,.8)'); g.addColorStop(1,'rgba(40,110,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,mr,0,7); ctx.fill(); }
+  if(b.tail<.05){ const mr=w*1.9*(1+.1*Math.sin(t*50)); const g=ctx.createRadialGradient(0,0,0,0,0,mr); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.35,'rgba(150,215,255,.8)'); g.addColorStop(1,'rgba(40,110,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,mr,0,7); ctx.fill(); }
   // beam head
   if(b.prog<1){ const hr=w*1.6; const g=ctx.createRadialGradient(len,0,0,len,0,hr*2); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.4,'rgba(140,210,255,.7)'); g.addColorStop(1,'rgba(40,110,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(len,0,hr*2,0,7); ctx.fill(); }
   ctx.restore();
   // impact core + splash rays
   if(t>IMPACT && b.prog>=1){
     ctx.globalCompositeOperation='lighter';
-    const k=1-b.tail, cr=(60+18*Math.sin(t*40))*k;
+    const k=1-b.tail, cr=(95+24*Math.sin(t*40))*k;
     let g=ctx.createRadialGradient(IMP.x,IMP.y,0,IMP.x,IMP.y,cr*2.2); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.3,'rgba(170,225,255,.85)'); g.addColorStop(1,'rgba(50,120,255,0)');
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(IMP.x,IMP.y,cr*2.2,0,7); ctx.fill();
-    for(let i=0;i<9;i++){ const a=b.ang+Math.PI+R(-1.5,1.5), Lr=R(60,190)*k, ww=R(3,9)*k;
+    for(let i=0;i<9;i++){ const a=b.ang+Math.PI+R(-1.6,1.6), Lr=R(90,280)*k, ww=R(4,14)*k;
       ctx.strokeStyle=`rgba(${R(150,230)|0},${R(210,250)|0},255,${R(.4,.9)})`; ctx.lineWidth=ww; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(IMP.x,IMP.y); ctx.lineTo(IMP.x+Math.cos(a)*Lr,IMP.y+Math.sin(a)*Lr); ctx.stroke(); }
     ctx.globalCompositeOperation='source-over';
@@ -802,6 +803,79 @@ function render(){
   drawScreenFX(t,S,lastDt);
 }
 
+
+/* ---------- sound (synthesized with Web Audio, starts from the Sound button) ---------- */
+let AC=null, soundOn=false, audioLive=true, NB=null, BUS={}, lastPing=0;
+function makeAudio(){
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  const comp=AC.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=6;
+  const master=AC.createGain(); master.gain.value=.9; master.connect(comp); comp.connect(AC.destination);
+  BUS.master=master;
+  NB=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate); const d=NB.getChannelData(0);
+  let b0=0; for(let i=0;i<d.length;i++){ const w=Math.random()*2-1; b0=.97*b0+.03*w; d[i]=w*.6+b0*3; }
+  const noise=()=>{ const n=AC.createBufferSource(); n.buffer=NB; n.loop=true; n.start(); return n; };
+  const chain=(src,type,freq,q)=>{ const f=AC.createBiquadFilter(); f.type=type; f.frequency.value=freq; if(q)f.Q.value=q; const g=AC.createGain(); g.gain.value=0; src.connect(f); f.connect(g); g.connect(master); return {f,g}; };
+  BUS.wind=chain(noise(),'bandpass',700,.8);
+  BUS.rumble=chain(noise(),'lowpass',110);
+  BUS.beamN=chain(noise(),'lowpass',1600);
+  BUS.sizzle=chain(noise(),'highpass',4500);
+  const o1=AC.createOscillator(); o1.type='sawtooth'; o1.frequency.value=55; o1.start();
+  const o2=AC.createOscillator(); o2.type='sine'; o2.frequency.value=110; o2.start();
+  const hm=AC.createGain(); o1.connect(hm); o2.connect(hm);
+  BUS.hum=chain(hm,'lowpass',300,4); BUS.o1=o1; BUS.o2=o2;
+  const b1=AC.createOscillator(); b1.type='sawtooth'; b1.frequency.value=68; b1.start();
+  const b2=AC.createOscillator(); b2.type='sawtooth'; b2.frequency.value=71.5; b2.start();
+  const bm=AC.createGain(); b1.connect(bm); b2.connect(bm);
+  BUS.beamS=chain(bm,'lowpass',700,2);
+}
+function lvl(node,v,tc){ if(AC) node.setTargetAtTime(v,AC.currentTime,tc||.05); }
+function audioLevels(t){
+  if(!AC||!soundOn) return;
+  const S=computeState(t), c=S.c, live=playing?1:0;
+  const beam=S.beam? (1-S.beam.tail)*clamp(S.beam.w/54,0,1) : 0;
+  lvl(BUS.wind.g.gain,(.05+.16*c*(t<FIRE?1:0)+.18*beam)*live);
+  lvl(BUS.wind.f.frequency,500+900*c+600*beam);
+  const hum = t>3&&t<FIRE ? .32*Math.pow(c,.8)*(.8+.2*Math.sin(t*(8+c*20))) : 0;
+  lvl(BUS.hum.g.gain,hum*live,.03);
+  lvl(BUS.o1.frequency,55+70*c); lvl(BUS.o2.frequency,110+150*c);
+  lvl(BUS.hum.f.frequency,250+2400*c);
+  lvl(BUS.beamN.g.gain,.55*beam*live,.03);
+  lvl(BUS.beamS.g.gain,.22*beam*live,.03);
+  lvl(BUS.sizzle.g.gain,.12*beam*(.7+.3*Math.sin(t*47))*live,.02);
+  let rum = t>IMPACT ? .9*Math.exp(-(t-IMPACT)*.9) + (t<BEAM_END?.35:0) : 0;
+  if(t>BEAM_END) rum += 1.1*Math.exp(-(t-BEAM_END)*.6);
+  if(t>3&&t<FIRE) rum += .25*c*c;
+  lvl(BUS.rumble.g.gain,Math.min(1.4,rum)*live,.06);
+}
+function boom(f0,f1,dur,vol,noiseVol,cut){
+  const t0=AC.currentTime;
+  const o=AC.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f0,t0); o.frequency.exponentialRampToValueAtTime(f1,t0+dur*.8);
+  const g=AC.createGain(); g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  o.connect(g); g.connect(BUS.master); o.start(t0); o.stop(t0+dur+.05);
+  const n=AC.createBufferSource(); n.buffer=NB; n.playbackRate.value=.8;
+  const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(cut,t0); f.frequency.exponentialRampToValueAtTime(120,t0+dur);
+  const ng=AC.createGain(); ng.gain.setValueAtTime(noiseVol,t0); ng.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  n.connect(f); f.connect(ng); ng.connect(BUS.master); n.start(t0, Math.random()); n.stop(t0+dur+.05);
+}
+function whoosh(dur,vol){
+  const t0=AC.currentTime, n=AC.createBufferSource(); n.buffer=NB;
+  const f=AC.createBiquadFilter(); f.type='bandpass'; f.Q.value=1.2; f.frequency.setValueAtTime(300,t0); f.frequency.exponentialRampToValueAtTime(3500,t0+dur);
+  const g=AC.createGain(); g.gain.setValueAtTime(.001,t0); g.gain.exponentialRampToValueAtTime(vol,t0+dur*.3); g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  n.connect(f); f.connect(g); g.connect(BUS.master); n.start(t0,Math.random()); n.stop(t0+dur+.05);
+}
+function ping(){
+  const t0=AC.currentTime, o=AC.createOscillator(); o.type='triangle'; o.frequency.value=R(2200,6200);
+  const g=AC.createGain(); g.gain.setValueAtTime(R(.03,.08),t0); g.gain.exponentialRampToValueAtTime(.0005,t0+R(.15,.4));
+  o.connect(g); g.connect(BUS.master); o.start(t0); o.stop(t0+.45);
+}
+function snd(name){
+  if(!AC||!soundOn||!audioLive||!playing) return;
+  if(name==='fire'){ whoosh(.45,.7); boom(180,45,.9,.8,.6,4000); }
+  else if(name==='impact'){ boom(110,28,2.6,1.2,1.1,6000); whoosh(.6,.5); for(let i=0;i<6;i++) setTimeout(ping,i*35); }
+  else if(name==='blast'){ boom(90,22,3.6,1.3,1.3,5000); }
+  else if(name==='glass'){ const now=performance.now(); if(now-lastPing>18){ lastPing=now; ping(); } }
+}
+
 /* ---------- loop + UI ---------- */
 function resize(){
   const r=canvas.getBoundingClientRect();
@@ -816,11 +890,12 @@ let playing=true, speed=1, last=performance.now();
 const playBtn=document.getElementById('play'), head=document.getElementById('head'), track=document.getElementById('track'), tc=document.getElementById('tc');
 const beats=[...track.querySelectorAll('.beat')], BEATS=[0,2.6,7.05,7.5,10,DUR];
 function fmt(x){ const m=Math.floor(x/60), sec=x-m*60; return String(m).padStart(2,'0')+':'+sec.toFixed(2).padStart(5,'0'); }
-function seek(t){ reset(); const st=1/60; while(T<t-1e-6){ const d=Math.min(st,t-T); T+=d; update(d);} }
+function seek(t){ reset(); audioLive=false; const st=1/60; while(T<t-1e-6){ const d=Math.min(st,t-T); T+=d; update(d);} audioLive=true; }
 function frame(now){
   let dt=Math.min(.05,(now-last)/1000); last=now;
   lastDt = playing? dt*speed : 0;
   if(playing){ let rem=dt*speed; while(rem>1e-6){ const d=Math.min(1/60,rem); T+=d; update(d); rem-=d; } if(T>=DUR) reset(); }
+  audioLevels(T);
   render();
   head.style.left=(T/DUR*100)+'%';
   tc.innerHTML='<b>'+fmt(T)+'</b> / '+fmt(DUR);
@@ -828,13 +903,17 @@ function frame(now){
   beats.forEach((b,i)=>b.classList.toggle('on',T>=BEATS[i]&&T<BEATS[i+1]));
   requestAnimationFrame(frame);
 }
-function setPlaying(p){ playing=p; playBtn.textContent=p?'Pause':'Play'; }
+function setPlaying(p){ playing=p; playBtn.textContent=p?'Pause':'Play'; if(AC){ p&&soundOn?AC.resume():AC.suspend(); } }
 playBtn.addEventListener('click',()=>setPlaying(!playing));
 document.getElementById('replay').addEventListener('click',()=>{ reset(); setPlaying(true); });
 document.querySelectorAll('.speed button').forEach(b=>b.addEventListener('click',()=>{ speed=+b.dataset.s; document.querySelectorAll('.speed button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false')); }));
 track.addEventListener('click',e=>{ const r=track.getBoundingClientRect(); const bi=beats.findIndex(b=>{const q=b.getBoundingClientRect(); return e.clientX>=q.left&&e.clientX<=q.right;}); seek(bi>=0?BEATS[bi]:clamp((e.clientX-r.left)/r.width,0,1)*DUR); });
 track.addEventListener('keydown',e=>{ if(e.key==='ArrowRight'){seek(Math.min(DUR-.01,T+1));e.preventDefault();} if(e.key==='ArrowLeft'){seek(Math.max(0,T-1));e.preventDefault();} });
 window.addEventListener('keydown',e=>{ if(e.target.closest&&e.target.closest('button'))return; if(e.code==='Space'){e.preventDefault();setPlaying(!playing);} if(e.key==='r'||e.key==='R'){reset();setPlaying(true);} });
+const soundBtn=document.getElementById('sound');
+soundBtn.addEventListener('click',()=>{ try{ if(!AC) makeAudio(); }catch(e){ soundBtn.textContent='No audio'; return; }
+  soundOn=!soundOn; soundBtn.setAttribute('aria-pressed',soundOn?'true':'false'); soundBtn.textContent=soundOn?'Sound on':'Sound off';
+  if(soundOn&&playing) AC.resume(); else AC.suspend(); });
 reset();
 requestAnimationFrame(frame);
 })();
