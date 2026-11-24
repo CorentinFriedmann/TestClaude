@@ -231,7 +231,7 @@ function poseAt(t){
   const breathe = t<IDLE_END||t>BEAM_END+1 ? Math.sin(t*2.2)*.018 : 0;
   P.lean+=breathe;
   const c=chargeAt(t);
-  const trem = (t>CH&&t<FIRE? c*c*.05 : 0) + (t>SURGE&&t<SURGE+.4? .06:0) + (t>BEAM_START&&t<BEAM_END? .03:0);
+  const trem = (t>CH&&t<FIRE? c*c*.05 : 0) + (t>SURGE&&t<SURGE+.6? .09:0) + (t>BEAM_START&&t<BEAM_END? .03:0);
   if(trem){ const j=Math.sin(t*71)*trem, k=Math.sin(t*53+2)*trem; P.uN+=j; P.fN+=k; P.uF+=k; P.fF+=j; P.lean+=j*.3; }
   if(t>BEAM_END+1.4) { P.lean += Math.sin((t-BEAM_END)*3.5)*.03*Math.max(0,1-(t-BEAM_END-1.4)/3); }
   return P;
@@ -267,7 +267,7 @@ const CAM=[
   [12.4,432,556,3.9,-0.05],
   [12.8,770,462,1.22,0.0],
   [14.5,815,446,1.3, 0.0],
-  [15.1,860,440,1.45,0.0],
+  [15.1,880,438,1.62,0.0],
   [16.4,840,440,1.34,0.0],
   [17.6,1150,412,1.95,0.025],
   [19.8,1110,420,1.78,0.012],
@@ -287,7 +287,7 @@ function camAt(t){
 function shakeAmp(t){
   let a=0; const c=chargeAt(t);
   if(t>CH&&t<FIRE) a+=c*c*3;
-  if(t>=SURGE) a+=14*Math.exp(-(t-SURGE)*4);
+  if(t>=SURGE) a+=28*Math.exp(-(t-SURGE)*3)+(t<BEAM_END?3:0);
   if(t>=FIRE) a+=11*Math.exp(-(t-FIRE)*6);
   if(t>=IMPACT) a+=26*Math.exp(-(t-IMPACT)*3.2);
   if(t>=IMPACT&&t<BEAM_END) a+=4.5;
@@ -296,7 +296,8 @@ function shakeAmp(t){
 }
 
 /* ---------- state ---------- */
-function craterR(t){ if(t<IMPACT) return 0; let r=84*(1-Math.exp(-(t-IMPACT)*1.6)); if(t>BEAM_END) r+=34*(1-Math.exp(-(t-BEAM_END)*4)); return r; }
+function surgeK(t){ return t<SURGE?0:sstep(SURGE,SURGE+.18,t)*(1+.45*Math.exp(-(t-SURGE)*3)); }
+function craterR(t){ if(t<IMPACT) return 0; let r=84*(1-Math.exp(-(t-IMPACT)*1.6)); if(t>SURGE) r+=26*(1-Math.exp(-(t-SURGE)*3)); if(t>BEAM_END) r+=34*(1-Math.exp(-(t-BEAM_END)*4)); return r; }
 function computeState(t){
   const P=poseAt(t), K=skel(P), c=chargeAt(t);
   const hm={x:HERO.x+(K.hN[0]+K.hF[0])/2, y:HERO.y+(K.hN[1]+K.hF[1])/2};
@@ -310,7 +311,7 @@ function computeState(t){
     const full=Math.hypot(IMP.x-sp.x,IMP.y-sp.y), ang=Math.atan2(IMP.y-sp.y,IMP.x-sp.x);
     const prog=ease(clamp((t-BEAM_START)/(IMPACT-BEAM_START),0,1));
     const tail=sstep(BEAM_END,BEAM_END+.45,t);
-    const w=54*(1+.35*sstep(SURGE,SURGE+.25,t))*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
+    const w=54*(1+.85*surgeK(t))*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
     const o={x:sp.x+Math.cos(ang)*full*tail, y:sp.y+Math.sin(ang)*full*tail};
     beam={o, ang, len:Math.max(0,full*prog-full*tail), full, w, tail, prog};
   }
@@ -361,9 +362,11 @@ function update(dt){
       for(let i=0;i<24;i++){const a=R(0,6.283),v=R(80,220);add({type:'dust',x:HERO.x+Math.cos(a)*30,y:HERO.y-R(0,4),vx:Math.cos(a)*v,vy:-R(5,40),max:R(.6,1.2),size:R(2,5)});} }
     ev.pulse=k; }
   if(!ev.surge && t>=SURGE){ ev.surge=1; snd('surge');
-    rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.1,maxR:1300,w:85,col:'190,235,255',big:1});
-    rings.push({x:S.sp.x,y:S.sp.y,t0:t,dur:.55,maxR:380,w:26,col:'210,240,255'});
-    spawnDebris(90,false,650); spawnSparks(260,false); spawnSmoke(45,90,false); }
+    rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.3,maxR:2100,w:130,col:'190,235,255',big:1});
+    rings.push({x:IMP.x,y:IMP.y,t0:t+.15,dur:1,maxR:1100,w:60,col:'255,255,255'});
+    rings.push({x:S.sp.x,y:S.sp.y,t0:t,dur:.6,maxR:640,w:40,col:'210,240,255',big:1});
+    spawnDebris(170,false,800); spawnSparks(460,false); spawnSmoke(60,110,false);
+    for(let i=0;i<50;i++){const a=R(0,6.283),v=R(150,500);add({type:'spark',x:S.sp.x,y:S.sp.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,max:R(.25,.6)});} }
   if(!ev.impact && t>=IMPACT){ ev.impact=1; snd('impact');
     rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.35,maxR:1950,w:125,col:'170,220,255',big:1});
     rings.push({x:IMP.x,y:IMP.y,t0:t+.08,dur:.9,maxR:820,w:52,col:'255,255,255'});
@@ -406,7 +409,7 @@ function update(dt){
     if(Math.random()<dt*3*k) spawnDebris(1,false,120);
   }
   // windows shatter wave
-  const rC = t<IMPACT?0 : t<BEAM_END ? Math.min(290,(t-IMPACT)*380) : 290+Math.min(170,(t-BEAM_END)*550);
+  const rC = t<IMPACT?0 : t<BEAM_END ? Math.min(290,(t-IMPACT)*380)+(t>SURGE?Math.min(90,(t-SURGE)*300):0) : 290+Math.min(170,(t-BEAM_END)*550);
   for(const w of TW){
     if(w.broken<0 && w.d<rC){ w.broken=t; snd('glass');
       if(w.d>S.cr*.9){ const n=3+(Math.random()*3|0); for(let i=0;i<n;i++){ const dx=w.x+w.w/2-IMP.x, dy=w.y+w.h/2-IMP.y, dl=Math.hypot(dx,dy)||1, v=R(80,280);
@@ -772,7 +775,7 @@ function rooftop(t){
 function auraLevel(t,S){
   let a=S.glow;
   if(t>BEAM_END) a=Math.max(a,.55*Math.exp(-(t-BEAM_END)*.7));
-  if(t>=SURGE&&t<BEAM_END) a*=1+.35*Math.exp(-(t-SURGE)*1.5);
+  if(t>=SURGE&&t<BEAM_END) a*=1+.4*surgeK(t);
   return a;
 }
 function auraPath(cx,cy,rx,ry,t,ph){
@@ -1047,9 +1050,10 @@ function drawGlowOverlays(t,S){
   const rad=(x,y,r,col,a)=>{ if(a<=0.002) return; const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,`rgba(${col},${a})`); g.addColorStop(.35,`rgba(${col},${a*.35})`); g.addColorStop(1,`rgba(${col},0)`); ctx.fillStyle=g; ctx.fillRect(x-r,y-r,r*2,r*2); };
   if(t<FIRE && S.c>0) rad(S.sp.x,S.sp.y,110+560*S.c,'50,130,255',.42*S.c);
   if(S.beam){ const b=S.beam, k=1-b.tail;
-    rad(b.o.x,b.o.y,700,'60,140,255',.65*k);
+    const sk=1+.6*surgeK(t);
+    rad(b.o.x,b.o.y,700*sk,'60,140,255',.65*k);
     ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=440; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
-    if(t>IMPACT) rad(IMP.x,IMP.y,900,'90,160,255',.75*k);
+    if(t>IMPACT) rad(IMP.x,IMP.y,900*sk,'90,160,255',.75*k);
   }
   if(t>BEAM_END && t<BEAM_END+3.4){ const e=t-BEAM_END, fr=fireballR(t), fa=Math.exp(-e*1.1);
     rad(IMP.x,IMP.y,fr*1.8,'255,100,30',.32*fa); rad(IMP.x,IMP.y,fr*.8,'255,170,80',.28*fa); rad(IMP.x,IMP.y,fr*.3,'255,250,235',.7*Math.exp(-e*3.5)); }
@@ -1198,7 +1202,7 @@ function drawScreenFX(t,S,dt){
   // radial speed lines at release
   let sl=0;
   if(t>FIRE-.75&&t<FIRE) sl=.25*sstep(FIRE-.75,FIRE-.05,t);
-  if(t>=SURGE&&t<SURGE+.35) sl=Math.max(sl,.5*(1-(t-SURGE)/.35));
+  if(t>=SURGE&&t<SURGE+.6) sl=Math.max(sl,.8*(1-(t-SURGE)/.6));
   if(t>=FIRE&&t<FIRE+.42) sl=.75*(1-(t-FIRE)/.42);
   if(sl>0 && !reduceMotion){
     const cx=W/2, cy=H/2; ctx.fillStyle=`rgba(230,245,255,${sl})`;
@@ -1213,7 +1217,7 @@ function drawScreenFX(t,S,dt){
   if(t>=FIRE) fl+=.35*Math.exp(-(t-FIRE)*10);
   if(t>=IMPACT) fl+=.9*Math.exp(-(t-IMPACT)*5);
   if(t>=BEAM_END) fl+=.9*Math.exp(-(t-BEAM_END)*3);
-  if(t>=SURGE) fl+=.4*Math.exp(-(t-SURGE)*7);
+  if(t>=SURGE) fl+=.75*Math.exp(-(t-SURGE)*5);
   if(reduceMotion) fl*=.3;
   if(fl>.003){ ctx.fillStyle=`rgba(215,235,255,${Math.min(.95,fl)})`; ctx.fillRect(0,0,W,H); }
   // vignette
@@ -1326,7 +1330,7 @@ function snd(name){
   else if(name==='impact'){ boom(110,28,2.6,1.2,1.1,6000); whoosh(.6,.5); for(let i=0;i<6;i++) setTimeout(ping,i*35); }
   else if(name==='blast'){ boom(85,20,4.8,1.6,1.5,6000); whoosh(.8,.6); setTimeout(()=>{ if(soundOn&&playing) boom(60,18,3.5,1,1,2500); },260); for(let i=0;i<10;i++) setTimeout(ping,80+i*45); }
   else if(name==='pulse'){ boom(70,40,.6,.5,.25,900); }
-  else if(name==='surge'){ whoosh(.5,.8); boom(140,35,1.8,1.1,.9,5000); }
+  else if(name==='surge'){ whoosh(.7,1); boom(150,30,2.6,1.5,1.2,6000); setTimeout(()=>{ if(soundOn&&playing) boom(90,25,2,1,.8,3000); },180); }
   else if(name==='glass'){ const now=performance.now(); if(now-lastPing>18){ lastPing=now; ping(); } }
 }
 
