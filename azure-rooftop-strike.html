@@ -803,6 +803,8 @@ function drawAura(t,S,front){
     auraPath(cx,cy,rx*.9,ry*.9,t,5.1); ctx.stroke();
     ctx.lineWidth=.8; ctx.strokeStyle=`rgba(255,255,255,${.3*A})`;
     auraPath(cx,cy,rx*.7,ry*.7,t,2.3); ctx.stroke();
+    const nb=A>.3?Math.round(R(0,3.2)*A):0;
+    for(let i=0;i<nb;i++){ const a1=R(-Math.PI,0), a2=a1+R(-1.2,1.2); bolt(cx+Math.cos(a1)*rx*.4,cy+Math.sin(a1)*ry*.5,cx+Math.cos(a2)*rx*R(.9,1.3),cy+Math.sin(a2)*ry*R(.9,1.4),.9,1); }
   }
   ctx.globalCompositeOperation='source-over';
 }
@@ -1028,6 +1030,24 @@ function drawGlowOverlays(t,S){
   ctx.globalCompositeOperation='source-over';
 }
 
+
+/* jagged, branching lightning bolt with a soft blue glow and a white-hot core (draw in 'lighter' mode) */
+function boltPath(x0,y0,x1,y1,depth,out){
+  const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy)||1, nx=-dy/L, ny=dx/L, st=Math.max(4,L/9|0);
+  const pts=[[x0,y0]]; let off=0;
+  for(let j=1;j<st;j++){ off=off*.55+R(-1,1)*L*.11; pts.push([x0+dx*j/st+nx*off, y0+dy*j/st+ny*off]); }
+  pts.push([x1,y1]); out.push(pts);
+  if(depth>0) for(let j=2;j<pts.length-1;j++) if(Math.random()<.22){
+    const p=pts[j], ang=Math.atan2(dy,dx)+R(-1,1)*1.1, bl=L*R(.2,.45);
+    boltPath(p[0],p[1],p[0]+Math.cos(ang)*bl,p[1]+Math.sin(ang)*bl,depth-1,out);
+  }
+}
+function bolt(x0,y0,x1,y1,w,depth){
+  const paths=[]; boltPath(x0,y0,x1,y1,depth,paths);
+  const draw=(width,col)=>{ ctx.strokeStyle=col; ctx.lineWidth=width; paths.forEach((pts,k)=>{ ctx.lineWidth=width*(k?0.55:1); ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); }); };
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  draw(w*7,'rgba(60,140,255,.18)'); draw(w*3,'rgba(130,200,255,.5)'); draw(w*1.2,'rgba(240,250,255,.95)');
+}
 function drawSphere(t,S){
   if(S.sr<=0.5) return;
   setLayer(1); ctx.globalCompositeOperation='lighter';
@@ -1041,13 +1061,12 @@ function drawSphere(t,S){
   // swirl rings
   ctx.lineWidth=1.2;
   for(let i=0;i<3;i++){ ctx.strokeStyle=`rgba(190,235,255,${.35+.2*Math.sin(t*9+i)})`; ctx.beginPath(); ctx.ellipse(x,y,r*1.35,r*.45,t*4+i*2.1,0,7); ctx.stroke(); }
-  // arcs
-  const n=2+Math.round(6*S.c);
-  ctx.strokeStyle='rgba(210,245,255,.9)'; ctx.lineWidth=1.1;
-  for(let i=0;i<n;i++){ let a=Math.random()*6.283, L=r*R(1.3,2.6), px=x+Math.cos(a)*r*.6, py=y+Math.sin(a)*r*.6;
-    ctx.beginPath(); ctx.moveTo(px,py); const st=5;
-    for(let j=1;j<=st;j++){ const rr=r*.6+(L-r*.6)*j/st; a+=R(-.45,.45); ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); }
-    ctx.stroke(); }
+  // lightning: long branching bolts crawling off the sphere
+  const n=3+Math.round(9*S.c);
+  for(let i=0;i<n;i++){ const a=Math.random()*6.283, L=r*R(2.2,5.5)+40*S.c*Math.random();
+    bolt(x+Math.cos(a)*r*.5,y+Math.sin(a)*r*.5,x+Math.cos(a)*L,y+Math.sin(a)*L,1+S.c,2); }
+  // strikes from the sphere down to the roof once the charge is strong
+  if(S.c>.45 && Math.random()<.35*S.c){ const tx=HERO.x+R(-120,120); bolt(x,y,tx,HERO.y,1.4+S.c,2); }
   ctx.globalCompositeOperation='source-over';
 }
 
@@ -1078,6 +1097,9 @@ function drawBeam(t,S){
   ctx.lineWidth=1.6;
   for(let k=0;k<14;k++){ const x=((t*1300+k*73)%Math.max(1,len)); const a=.25+.35*Math.sin(k*2.3+t*20);
     ctx.strokeStyle=`rgba(200,240,255,${a})`; ctx.beginPath(); ctx.ellipse(x,0,5,w*.95,0,0,7); ctx.stroke(); }
+  // lightning crawling along the beam
+  if(len>60){ const nb=2+Math.round(3*(1-b.tail)); for(let k=0;k<nb;k++){ const x0=Math.random()*len*.85, L=R(60,180); const side=Math.random()<.5?-1:1;
+      bolt(x0,side*w*R(.3,.6),Math.min(len,x0+L),side*w*R(.9,1.8),1.3,1); } }
   // inner streaks
   ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.2;
   for(let k=0;k<10;k++){ const x=((t*2200+k*131)%Math.max(1,len)); const y=Math.sin(k*7.1+t*13)*w*.55; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+60,y); ctx.stroke(); }
