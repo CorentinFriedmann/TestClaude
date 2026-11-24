@@ -58,7 +58,7 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
       <div class="eyebrow">Azure Rooftop Strike · Scene 02 · <a href="https://claude.ai/artifact/Da53TToUHh26ecpQK2Qds6" target="_blank" rel="noopener">Watch scene 01</a></div>
       <h1>Emerald <span>Clash</span></h1>
     </div>
-    <div class="tc" id="tc"><b>00:00.00</b> / 00:24.00</div>
+    <div class="tc" id="tc"><b>00:00.00</b> / 00:27.00</div>
   </header>
 
   <div class="screen"><canvas id="c" aria-label="Animated anime-style scene: a martial artist charges a blue energy sphere on a rooftop and fires a beam into a nearby skyscraper"></canvas></div>
@@ -74,22 +74,23 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
     </div>
   </div>
 
-  <div class="track" id="track" role="slider" aria-label="Scene timeline" tabindex="0" aria-valuemin="0" aria-valuemax="24" aria-valuenow="0">
+  <div class="track" id="track" role="slider" aria-label="Scene timeline" tabindex="0" aria-valuemin="0" aria-valuemax="27" aria-valuenow="0">
     <div class="beat" style="flex:4"><span class="n">00.0</span><span class="l">Smoke</span></div>
     <div class="beat" style="flex:5.6"><span class="n">04.0</span><span class="l">Rival</span></div>
     <div class="beat" style="flex:1.15"><span class="n">09.6</span><span class="l">Leap</span></div>
     <div class="beat" style="flex:2.85"><span class="n">10.8</span><span class="l">Clash</span></div>
-    <div class="beat" style="flex:10.4"><span class="n">13.6</span><span class="l">Standoff</span></div>
+    <div class="beat" style="flex:7.4"><span class="n">13.6</span><span class="l">Aura duel</span></div>
+    <div class="beat" style="flex:6"><span class="n">21.0</span><span class="l">Standoff</span></div>
     <div class="head" id="head"></div>
   </div>
 
-  <p class="note">Click a beat on the timeline to jump to it. Slow the playback to ¼× for the mid-air clash. Turn on sound for the clash and the blast. <kbd>Space</kbd> pauses, <kbd>R</kbd> replays.</p>
+  <p class="note">Click a beat on the timeline to jump to it. Slow the playback to ¼× for the mid-air clash and the aura duel. Turn on sound for the clash and the blast. <kbd>Space</kbd> pauses, <kbd>R</kbd> replays.</p>
 </main>
 
 <script>
 (() => {
-const W = 1600, H = 900, DUR = 24;
-const IDLE_END = -111, CH = -110, FIRE = -104, BEAM_START = -103.93, IMPACT = -103.5, SURGE = -101.8, BEAM_END = -100, TITLE = 20.5;
+const W = 1600, H = 900, DUR = 27;
+const IDLE_END = -111, CH = -110, FIRE = -104, BEAM_START = -103.93, IMPACT = -103.5, SURGE = -101.8, BEAM_END = -100, TITLE = 23.4;
 const HERO = { x: 420, y: 620 };
 const IMP = { x: 1196, y: 404 };
 const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -285,7 +286,7 @@ function skel(P){
 }
 
 /* ---------- camera ---------- */
-const ZERO_KEYS=[10.75,14.2];
+const ZERO_KEYS=[10.75,14.2,21.0];
 const CAM=[
   [0.0, 1450,300,1.25, 0.02],
   [3.2, 1225,420,1.9, -0.02],
@@ -298,10 +299,14 @@ const CAM=[
   [12.0,808,428,1.5,   0.05],
   [13.5,805,430,1.75, -0.05],
   [14.2,800,470,1.2,   0],
-  [16.5,820,470,1.25,  0.02],
-  [18.5,760,480,1.15, -0.01],
-  [20.5,800,462,1.08,  0],
-  [24.0,800,462,1.05,  0]];
+  [15.4,800,485,1.18, 0],
+  [16.6,812,500,1.38, 0.025],
+  [17.8,800,490,1.28,-0.02],
+  [18.6,808,470,1.12, 0],
+  [20.3,808,482,1.32, 0.03],
+  [21.0,808,470,1.15, 0],
+  [23.4,800,462,1.08, 0],
+  [27.0,800,462,1.05, 0]];
 const CAMM=CAM.map((k,i)=>{
   if(i===0||i===CAM.length-1||ZERO_KEYS.includes(k[0])) return [0,0,0,0,0];
   const a=CAM[i-1], b=CAM[i+1], dt=b[0]-a[0];
@@ -1520,6 +1525,7 @@ function snd(name){
 /* =====================  SCENE 02 : EMERALD CLASH  ===================== */
 /* Scene 1 already happened: its beats sit in negative time, so the tower starts wrecked and smoking. */
 const T_EYES=4.0, T_IGN=6.2, T_FLARE=8.0, T_CROUCH=9.6, T_LEAP=10.0, T_CLASH=10.75, T_SEP=13.6, T_LAND=14.4;
+const T_DUEL=15.4, T_WAR=18.4, T_WEND=21.0, WAVES=[15.7,16.35,16.95,17.45,17.85], WT=.38;
 const CLASH={x:808,y:432};
 const HOME_H={x:420,y:620}, HOME_R={x:1196,y:IMP.y+112};
 const RIVAL={x:HOME_R.x,y:HOME_R.y};
@@ -1529,6 +1535,8 @@ POSES.leap  ={lean:.9, tF:1.6, sF:.25, tB:-.15,sB:-1.2, uN:1.62,fN:1.58,uF:.45,f
 POSES.clash ={lean:.55,tF:1.15,sF:.35,tB:-.7, sB:-.95, uN:1.6, fN:1.57,uF:1.5,fF:1.55};
 POSES.thrown={lean:-.6,tF:.9,  sF:1.2, tB:.3,  sB:.8,   uN:2.4, fN:2.8, uF:-1.2,fF:-1.8};
 POSES.land  ={lean:.32,tF:1.0, sF:-.3, tB:-.95,sB:-.6,  uN:.95,fN:1.35,uF:-.5,fF:.2};
+POSES.palm  ={lean:.28,tF:.85,sF:0,  tB:-.75,sB:-.42, uN:1.62,fN:1.6, uF:.55,fF:1.9};
+POSES.push  ={lean:.42,tF:1.0, sF:.1, tB:-.88,sB:-.52, uN:1.62,fN:1.6, uF:1.5,fF:1.58};
 POSES.guard ={lean:.12,tF:.55, sF:-.05,tB:-.62,sB:-.26, uN:.9, fN:2.3, uF:.7, fF:2.0};
 const bez=(a,c,b,u)=>({x:(1-u)*(1-u)*a.x+2*(1-u)*u*c.x+u*u*b.x, y:(1-u)*(1-u)*a.y+2*(1-u)*u*c.y+u*u*b.y});
 function heroPos(t){
@@ -1560,6 +1568,8 @@ function poseFor(t,who){
   else if(t<T_SEP) P=POSES.clash;
   else if(t<T_LAND) P=POSES.thrown;
   else if(t<T_LAND+.8) P=POSES.land;
+  else if(t>=T_WAR-.25 && t<T_WEND) P=POSES.push;
+  else if(WAVES.some(w=>t>w-.14&&t<w+.3)) P=POSES.palm;
   else P=POSES.guard;
   P={...P};
   if(calm){ P.lean+=Math.sin(t*2.1+(who==='r'?1:0))*.022; P.uN+=Math.sin(t*2.1+.6)*.04; }
@@ -1572,6 +1582,8 @@ function springK(t){
   if(t>=T_CLASH&&t<T_CLASH+.25) return 1000;
   if(t>=T_SEP&&t<T_SEP+.3) return 800;
   if(t>=T_LAND&&t<T_LAND+.3) return 500;
+  if(WAVES.some(w=>t>w-.14&&t<w+.05)) return 750;
+  if(t>=T_WAR-.25&&t<T_WAR) return 400;
   if(t>=T_CROUCH&&t<T_LEAP) return 300;
   return 80;
 }
@@ -1584,8 +1596,8 @@ function stepRival(t,dt){
 }
 
 /* aura levels and colors */
-function heroA(t){ let a=1; a=lerp(a,1.55,sstep(T_FLARE,T_FLARE+.5,t)); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); return a*(1+.06*Math.sin(t*5)); }
-function rivalA(t){ let a=1.3*sstep(T_IGN,T_IGN+.6,t); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); return a*(1+.06*Math.sin(t*5.6+1)); }
+function heroA(t){ let a=1; a=lerp(a,1.55,sstep(T_FLARE,T_FLARE+.5,t)); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); a=lerp(a,1.9,sstep(T_WAR-.3,T_WAR+.2,t)); a=lerp(a,1.3,sstep(T_WEND,T_WEND+1.2,t)); return a*(1+.06*Math.sin(t*5)); }
+function rivalA(t){ let a=1.3*sstep(T_IGN,T_IGN+.6,t); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); a=lerp(a,1.9,sstep(T_WAR-.3,T_WAR+.2,t)); a=lerp(a,1.3,sstep(T_WEND,T_WEND+1.2,t)); return a*(1+.06*Math.sin(t*5.6+1)); }
 function rivalAlpha(t){ return sstep(T_EYES+.4,T_EYES+1.8,t); }
 function reignite(t){ return 1; }
 function auraGreen(t){ return 1; }
@@ -1714,11 +1726,75 @@ function drawHero(t,S){
   const wind=.6+(inClash?2.2:0)+(t>T_SEP&&t<T_SEP+2?1.5*Math.exp(-(t-T_SEP)):0)+(t>T_LEAP&&t<T_CLASH?2:0);
   setLayer(1);
   trail(t,rivalPos,1); trail(t,heroPos,0);
+  drawAuraWar(t);
   const ra=rivalAlpha(t);
   if(ra>.01) drawFighter(t,{S:{K:S.RK,P:S.RP,glow:1},pos:RIVAL,mirror:true,pal:RIVAL_BODY,cv:RC,rim:[255,120,105],light:rl,open:false,wind,alpha:ra,A:rivalA(t),rk:1});
   drawRivalEyes(t,S.RK,RIVAL);
   drawFighter(t,{S:{K:S.K,P:S.P,glow:1},pos:HERO,mirror:false,pal:BODY,cv:HC,rim:[130,255,165],light:hl,open:inClash,wind,alpha:1,A:heroA(t),rk:0});
   drawClash(t);
+  drawWaves(t);
+}
+
+
+/* ---- aura duel and aura war ---- */
+const DUELPT={x:808,y:493};
+const lineY=x=>545-.141*(x-440);
+function chestOf(who){ return who==='h' ? {x:HERO.x+22,y:HERO.y-75} : {x:RIVAL.x-22,y:RIVAL.y-75}; }
+function warB(t){ return 808+70*Math.sin((t-T_WAR)*1.7)+22*Math.sin(t*5.3); }
+function crescent(x,y,ang,sz,rk,a){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+  const g=ctx.createRadialGradient(-sz*.3,0,0,-sz*.3,0,sz*1.3);
+  g.addColorStop(0,`rgba(255,255,255,${.9*a})`); g.addColorStop(.35,`rgba(${auraCol(2,rk)},${.75*a})`); g.addColorStop(1,`rgba(${auraCol(0,rk)},0)`);
+  ctx.fillStyle=g; ctx.beginPath();
+  ctx.arc(-sz*.6,0,sz*1.25,-1.05,1.05); ctx.arc(-sz*1.15,0,sz*1.05,.95,-.95,true); ctx.closePath(); ctx.fill();
+  // flame wake behind the wave
+  for(let i=0;i<5;i++){ const yy=(i-2)*sz*.32+Math.sin(T*30+i)*4, L=sz*(1.6+.5*Math.sin(T*20+i*2));
+    const g2=ctx.createLinearGradient(-sz*.4,0,-sz*.4-L,0); g2.addColorStop(0,`rgba(${auraCol(1,rk)},${.45*a})`); g2.addColorStop(1,`rgba(${auraCol(0,rk)},0)`);
+    ctx.fillStyle=g2; ctx.beginPath(); ctx.ellipse(-sz*.4-L/2,yy,L/2,sz*.13,0,0,7); ctx.fill(); }
+  ctx.restore();
+}
+function drawWaves(t){
+  ctx.globalCompositeOperation='lighter';
+  WAVES.forEach((w,i)=>{
+    const e=t-w;
+    if(e>=0&&e<WT){ const u=e/WT;
+      for(const [who,rk] of [['h',0],['r',1]]){ const c=chestOf(who), x=lerp(c.x,DUELPT.x,u), y=lerp(c.y,DUELPT.y,u), ang=Math.atan2(DUELPT.y-c.y,DUELPT.x-c.x);
+        crescent(x,y,ang,62+16*u+(i===WAVES.length-1?30:0),rk,1); } }
+    if(e>=WT&&e<WT+.45){ const k=(e-WT)/.45, r=(80+220*k)*(i===WAVES.length-1?1.6:1), a=1-k;
+      const g=ctx.createRadialGradient(DUELPT.x,DUELPT.y,0,DUELPT.x,DUELPT.y,r); g.addColorStop(0,`rgba(255,255,245,${.9*a})`); g.addColorStop(.35,`rgba(200,255,210,${.45*a})`); g.addColorStop(.6,`rgba(255,150,140,${.3*a})`); g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g; ctx.fillRect(DUELPT.x-r,DUELPT.y-r,r*2,r*2);
+      if(k<.4) for(let j=0;j<3;j++){ const an=R(0,6.283), L=R(120,320); bolt(DUELPT.x,DUELPT.y,DUELPT.x+Math.cos(an)*L,DUELPT.y+Math.sin(an)*L,1.2,1,1,Math.cos(an)>0?1:0); } }
+  });
+  ctx.globalCompositeOperation='source-over';
+}
+function tidePath(x0,x1,t,ph,scale){
+  const dir=Math.sign(x1-x0)||1, n=24, top=[], bot=[];
+  for(let i=0;i<=n;i++){ const u=i/n, x=lerp(x0,x1,u), y=lineY(x);
+    const hh=(70+110*u)*scale*(1+.1*Math.sin(u*9-t*12+ph)+.06*Math.sin(u*23+t*19+ph));
+    const tongue=Math.max(0,Math.sin(u*14+t*15+ph))*28*scale*u;
+    top.push([x,y-hh-tongue]); bot.push([x,y+hh*.85]); }
+  ctx.beginPath(); top.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  for(let i=8;i>=-8;i--){ const yy=lineY(x1)+i*22*scale; ctx.lineTo(x1+dir*(6+10*Math.sin(i*1.7+t*25+ph)),yy); }
+  for(let i=bot.length-1;i>=0;i--) ctx.lineTo(bot[i][0],bot[i][1]);
+  ctx.closePath();
+}
+function drawAuraWar(t){
+  const k=sstep(T_WAR-.3,T_WAR+.5,t)*(1-sstep(T_WEND,T_WEND+.6,t)); if(k<.01) return;
+  const B=warB(t), reach=lerp(.25,1,sstep(T_WAR-.3,T_WAR+.4,t));
+  ctx.globalCompositeOperation='lighter';
+  for(const [who,rk,x0] of [['h',0,HERO.x-30],['r',1,RIVAL.x+30]]){
+    const x1=lerp(x0,B,reach);
+    for(const [sc,ci,al] of [[1.15,0,.22],[.9,1,.32],[.6,2,.38]]){
+      const g=ctx.createLinearGradient(x0,0,x1,0); g.addColorStop(0,`rgba(${auraCol(ci,rk)},${al*.35*k})`); g.addColorStop(1,`rgba(${auraCol(ci,rk)},${al*k})`);
+      ctx.fillStyle=g; tidePath(x0,x1,t,rk*3+ci,sc); ctx.fill(); }
+    ctx.lineWidth=2; ctx.strokeStyle=`rgba(${auraCol(5,rk)},${.55*k})`; tidePath(x0,x1,t,rk*3+7,1); ctx.stroke();
+  }
+  if(reach>.95){ const y0=lineY(B), hh=230;
+    const g=ctx.createLinearGradient(0,y0-hh,0,y0+hh); g.addColorStop(0,'rgba(255,255,255,0)'); g.addColorStop(.5,`rgba(255,255,245,${.95*k})`); g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g; ctx.fillRect(B-7,y0-hh,14,hh*2);
+    const rg=ctx.createRadialGradient(B,y0,0,B,y0,260); rg.addColorStop(0,`rgba(255,255,240,${.5*k})`); rg.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=rg; ctx.fillRect(B-260,y0-260,520,520);
+    for(let i=0;i<4;i++){ const ya=y0+R(-200,200), yb=ya+R(-140,140); bolt(B+R(-8,8),ya,B+R(-30,30),yb,1.2,1,1,Math.random()<.5?1:0); } }
+  ctx.globalCompositeOperation='source-over';
 }
 
 /* events, particles and timing */
@@ -1749,15 +1825,30 @@ function scene2Update(t,dt,S){
   if(t>T_CLASH&&t<T_SEP+.4){ const rr=Math.min(620,(t-T_CLASH)*500);
     for(const w of TW){ if(w.broken>=0) continue; const d=Math.hypot(w.x+w.w/2-CLASH.x,w.y+w.h/2-CLASH.y); if(d<rr){ w.broken=t; snd('glass');
       for(let i=0;i<3;i++){ const dx=w.x-CLASH.x, dy=w.y-CLASH.y, dl=Math.hypot(dx,dy)||1, v=R(100,300); add({type:'glass',x:w.x+R(0,w.w),y:w.y+R(0,w.h),vx:dx/dl*v,vy:dy/dl*v-R(20,120),rot:R(0,6),vr:R(-14,14),max:R(2.5,4),size:R(2,5),seed:R(0,6)}); } } } }
+  // aura duel: crescent waves meet in the middle and burst
+  WAVES.forEach((w,i)=>{
+    once('wf'+i,w,()=>{ snd('pulse'); });
+    once('wc'+i,w+WT,()=>{ snd('sec'); const big=i===WAVES.length-1;
+      rings.push({x:DUELPT.x,y:DUELPT.y,t0:t,dur:.6,maxR:big?1100:650,w:big?60:34,col:'170,255,190',big:1});
+      rings.push({x:DUELPT.x,y:DUELPT.y,t0:t+.04,dur:.55,maxR:big?950:560,w:big?50:28,col:'255,150,140'});
+      burst(DUELPT,'170,255,190',big?140:70,big?1000:700); burst(DUELPT,'255,140,120',big?140:70,big?1000:700); }); });
+  // aura war: sparks spray along the seam where the two auras meet
+  if(t>T_WAR&&t<T_WEND){ const B=warB(t), y0=lineY(B); const n=spawnN(200,dt);
+    for(let i=0;i<n;i++){ const yy=y0+R(-170,170), side=Math.random()<.5?-1:1, v=R(200,700); add({type:'spark',x:B,y:yy,vx:side*v,vy:R(-200,200),max:R(.2,.5),col:side<0?'160,255,185':'255,140,120'}); } }
+  once('war',T_WAR,()=>{ snd('surge'); });
+  once('wend',T_WEND,()=>{ snd('blast'); const B=warB(t), P={x:B,y:lineY(B)};
+    rings.push({x:P.x,y:P.y,t0:t,dur:1.7,maxR:2800,w:170,col:'230,255,235',big:1});
+    rings.push({x:P.x,y:P.y,t0:t+.08,dur:1.4,maxR:2000,w:110,col:'255,160,150',big:1});
+    burst(P,'170,255,190',200,1200); burst(P,'255,140,120',200,1200); });
   // rival aura particles
   const ra=rivalA(t)*rivalAlpha(t);
   if(ra>.15){ const n=spawnN(90*Math.min(1.4,ra),dt), K=S.RK;
     for(let i=0;i<n;i++){ const u=Math.random(); add({type:'aura',x:RIVAL.x-lerp(K.hip[0],K.head[0],u)+R(-42,42),y:RIVAL.y+lerp(K.fF[1]+4,K.head[1]-20,Math.random()),vx:R(-10,55),vy:R(-260,-120),max:R(.45,.9),size:R(6,15),red:1}); } }
 }
-function scene2Wind(t){ return .3+(t>T_CLASH&&t<T_SEP?1.4:0)+(t>T_SEP?1.2*Math.exp(-(t-T_SEP)*.8):0)+(t>T_LEAP&&t<T_CLASH?1:0); }
+function scene2Wind(t){ return .3+(t>T_WAR&&t<T_WEND?1.5:0)+(t>T_DUEL&&t<T_WAR?.6:0)+(t>T_CLASH&&t<T_SEP?1.4:0)+(t>T_SEP?1.2*Math.exp(-(t-T_SEP)*.8):0)+(t>T_LEAP&&t<T_CLASH?1:0); }
 function scene2Speed(t){ if(t>T_LEAP&&t<T_CLASH) return .7*Math.sin(Math.PI*(t-T_LEAP)/(T_CLASH-T_LEAP)); if(t>T_SEP&&t<T_SEP+.4) return .5*(1-(t-T_SEP)/.4); return 0; }
-function scene2Flash(t){ let f=0; for(const [t0,str] of [[T_CLASH,1],[T_SEP,.9]]){ const e=t-t0; if(e>=0) f+=str*(e<.06?1:Math.exp(-(e-.06)*3.5)); } return f; }
-function scene2Rumble(t){ return (t>T_CLASH&&t<T_SEP?.6:0)+(t>T_SEP?1.1*Math.exp(-(t-T_SEP)*.7):0)+(t>T_EYES&&t<T_IGN?.15:0); }
+function scene2Flash(t){ let f=0; for(const [t0,str] of [[T_CLASH,1],[T_SEP,.9],[T_WEND,.9],...WAVES.map(w=>[w+WT,.25])]){ const e=t-t0; if(e>=0) f+=str*(e<.06?1:Math.exp(-(e-.06)*3.5)); } return f; }
+function scene2Rumble(t){ return (t>T_WAR&&t<T_WEND?.7:0)+(t>T_WEND?1.1*Math.exp(-(t-T_WEND)*.7):0)+(t>T_CLASH&&t<T_SEP?.6:0)+(t>T_SEP?1.1*Math.exp(-(t-T_SEP)*.7):0)+(t>T_EYES&&t<T_IGN?.15:0); }
 function shakeAmp(t){
   let a=0;
   if(t>T_EYES&&t<T_IGN) a+=1.5;
@@ -1767,9 +1858,13 @@ function shakeAmp(t){
   if(t>=T_CLASH) a+=38*Math.exp(-(t-T_CLASH)*3)+(t<T_SEP?9:0);
   if(t>=T_SEP) a+=32*Math.exp(-(t-T_SEP)*2.4);
   if(t>=T_LAND) a+=10*Math.exp(-(t-T_LAND)*5);
+  for(const w of WAVES){ const e=t-w-WT; if(e>=0) a+=9*Math.exp(-e*6); }
+  if(t>T_WAR&&t<T_WEND) a+=7;
+  if(t>=T_WEND) a+=34*Math.exp(-(t-T_WEND)*2.4);
   return reduceMotion?a*.2:a;
 }
-const PUNCH2=[[T_IGN,.07,0,0,.02],[T_FLARE,.08,0,0,-.02],[T_LEAP,.1,-10,0,.02],[T_CLASH,.32,0,-10,.05],[T_SEP,.28,0,-14,-.05],[T_LAND,.08,0,8,.02]];
+const PUNCH2=[[T_IGN,.07,0,0,.02],[T_FLARE,.08,0,0,-.02],[T_LEAP,.1,-10,0,.02],[T_CLASH,.32,0,-10,.05],[T_SEP,.28,0,-14,-.05],[T_LAND,.08,0,8,.02],[T_WAR,.12,0,0,.03],[T_WEND,.3,0,-12,-.05]];
+WAVES.forEach((w,i)=>PUNCH2.push([w+WT,.07,0,-4,i%2?.02:-.02]));
 function camPunch(t){
   let z=0,x=0,y=0,r=0;
   for(const [t0,az,ax,ay,ar] of PUNCH2){ const e=t-t0; if(e<0||e>1.6) continue;
@@ -1779,7 +1874,7 @@ function camPunch(t){
   return {z,x,y,r};
 }
 function handheld(t,S){
-  const act=t>T_CLASH&&t<T_SEP?1:t>T_SEP?Math.max(.35,Math.exp(-(t-T_SEP)*.6)):t>T_IGN?.4:.2;
+  const act=(t>T_CLASH&&t<T_SEP)||(t>T_WAR&&t<T_WEND+.5)?1:t>T_DUEL&&t<T_WAR?.6:t>T_SEP?Math.max(.35,Math.exp(-(t-T_SEP)*.6)):t>T_IGN?.4:.2;
   const a=2.5+7*act;
   return {x:a*(Math.sin(t*1.3)*.6+Math.sin(t*2.9+1.7)*.4), y:a*.7*(Math.sin(t*1.7+.4)*.6+Math.sin(t*3.7)*.4), r:.006*act*Math.sin(t*1.9+2)};
 }
@@ -1787,11 +1882,11 @@ function blurAmount(t){
   let m=0;
   if(t>T_LEAP&&t<T_CLASH) m=.4*Math.sin(Math.PI*(t-T_LEAP)/(T_CLASH-T_LEAP));
   if(t>T_SEP&&t<T_LAND) m=Math.max(m,.35*Math.sin(Math.PI*(t-T_SEP)/(T_LAND-T_SEP)));
-  for(const t0 of [T_CLASH,T_SEP]) if(t>t0&&t<t0+.5) m=Math.max(m,.35*(1-(t-t0)/.5));
+  for(const t0 of [T_CLASH,T_SEP,T_WEND]) if(t>t0&&t<t0+.5) m=Math.max(m,.35*(1-(t-t0)/.5));
   return reduceMotion?0:m;
 }
 function impactFlash(t){
-  const evs=[[T_CLASH,1,'210,255,220',CLASH],[T_SEP,.9,'255,225,210',CLASH],[T_IGN,.35,'255,120,110',HOME_R],[T_FLARE,.3,'150,255,180',HOME_H]];
+  const evs=[[T_CLASH,1,'210,255,220',CLASH],[T_SEP,.9,'255,225,210',CLASH],[T_WEND,.95,'240,255,240',DUELPT],...WAVES.map(w=>[w+WT,.4,'220,255,225',DUELPT]),[T_IGN,.35,'255,120,110',HOME_R],[T_FLARE,.3,'150,255,180',HOME_H]];
   const k=reduceMotion?.3:1;
   ctx.globalCompositeOperation='lighter';
   for(const [t0,str,col,P] of evs){
@@ -1823,7 +1918,7 @@ new ResizeObserver(resize).observe(canvas); resize();
 
 let playing=true, speed=1, last=performance.now();
 const playBtn=document.getElementById('play'), head=document.getElementById('head'), track=document.getElementById('track'), tc=document.getElementById('tc');
-const beats=[...track.querySelectorAll('.beat')], BEATS=[0,4,9.6,10.75,13.6,DUR];
+const beats=[...track.querySelectorAll('.beat')], BEATS=[0,4,9.6,10.75,13.6,21,DUR];
 function fmt(x){ const m=Math.floor(x/60), sec=x-m*60; return String(m).padStart(2,'0')+':'+sec.toFixed(2).padStart(5,'0'); }
 function seek(t){ reset(); audioLive=false; const st=1/60, liteEnd=t-6; LITE=true;
   while(T<t-1e-6){ if(LITE && T>=liteEnd) LITE=false; const d=Math.min(LITE?1/20:(T<t-1.2?1/30:st),t-T); T+=d; update(d);} LITE=false; audioLive=true; }
