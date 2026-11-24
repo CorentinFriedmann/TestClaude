@@ -364,7 +364,7 @@ function computeState(t){
     const full=Math.hypot(IMP.x-sp.x,IMP.y-sp.y), ang=Math.atan2(IMP.y-sp.y,IMP.x-sp.x);
     const prog=ease(clamp((t-BEAM_START)/(IMPACT-BEAM_START),0,1));
     const tail=sstep(BEAM_END,BEAM_END+.45,t);
-    const w=54*(1+.85*surgeK(t))*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
+    const w=82*(1+.75*surgeK(t))*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
     const o={x:sp.x+Math.cos(ang)*full*tail, y:sp.y+Math.sin(ang)*full*tail};
     beam={o, ang, len:Math.max(0,full*prog-full*tail), full, w, tail, prog};
   }
@@ -1158,9 +1158,9 @@ function drawGlowOverlays(t,S){
   if(t<FIRE && S.c>0) rad(S.sp.x,S.sp.y,110+560*S.c,'50,130,255',.42*S.c);
   if(S.beam){ const b=S.beam, k=1-b.tail;
     const sk=1+.6*surgeK(t);
-    rad(b.o.x,b.o.y,700*sk,'60,140,255',.65*k);
-    ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=440; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
-    if(t>IMPACT) rad(IMP.x,IMP.y,900*sk,'90,160,255',.75*k);
+    rad(b.o.x,b.o.y,820*sk,'60,140,255',.65*k);
+    ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=620; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
+    if(t>IMPACT) rad(IMP.x,IMP.y,1050*sk,'90,160,255',.75*k);
   }
   if(t>BEAM_END && t<BEAM_END+3.4){ const e=t-BEAM_END, fr=fireballR(t), fa=Math.exp(-e*1.1);
     rad(IMP.x,IMP.y,fr*1.8,'255,100,30',.32*fa); rad(IMP.x,IMP.y,fr*.8,'255,170,80',.28*fa); rad(IMP.x,IMP.y,fr*.3,'255,250,235',.7*Math.exp(-e*3.5)); }
@@ -1242,14 +1242,14 @@ function drawBeam(t,S){
   ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.2;
   for(let k=0;k<10;k++){ const x=((t*2200+k*131)%Math.max(1,len)); const y=Math.sin(k*7.1+t*13)*w*.55; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+60,y); ctx.stroke(); }
   // muzzle flare at hands
-  if(b.tail<.05){ const mr=w*1.9*(1+.1*Math.sin(t*50)); const g=ctx.createRadialGradient(0,0,0,0,0,mr); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.35,'rgba(150,215,255,.8)'); g.addColorStop(1,'rgba(40,110,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,mr,0,7); ctx.fill(); }
+  if(b.tail<.05){ const mr=w*1.45*(1+.1*Math.sin(t*50)); const g=ctx.createRadialGradient(0,0,0,0,0,mr); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.35,'rgba(150,215,255,.8)'); g.addColorStop(1,'rgba(40,110,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,mr,0,7); ctx.fill(); }
   // beam head
   if(b.prog<1){ const hr=w*1.6; const g=ctx.createRadialGradient(len,0,0,len,0,hr*2); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.4,'rgba(140,210,255,.7)'); g.addColorStop(1,'rgba(40,110,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(len,0,hr*2,0,7); ctx.fill(); }
   ctx.restore();
   // impact core + splash rays
   if(t>IMPACT && b.prog>=1){
     ctx.globalCompositeOperation='lighter';
-    const k=1-b.tail, cr=(95+24*Math.sin(t*40))*k;
+    const k=1-b.tail, cr=(135+30*Math.sin(t*40))*k;
     let g=ctx.createRadialGradient(IMP.x,IMP.y,0,IMP.x,IMP.y,cr*2.2); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.3,'rgba(170,225,255,.85)'); g.addColorStop(1,'rgba(50,120,255,0)');
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(IMP.x,IMP.y,cr*2.2,0,7); ctx.fill();
     for(let i=0;i<9;i++){ const a=b.ang+Math.PI+R(-1.6,1.6), Lr=R(90,280)*k, ww=R(4,14)*k;
@@ -1456,7 +1456,7 @@ function lvl(node,v,tc){ if(AC) node.setTargetAtTime(v,AC.currentTime,tc||.05); 
 function audioLevels(t){
   if(!AC||!soundOn) return;
   const S=computeState(t), c=S.c, live=playing?1:0;
-  const beam=S.beam? (1-S.beam.tail)*clamp(S.beam.w/54,0,1) : 0;
+  const beam=S.beam? (1-S.beam.tail)*clamp(S.beam.w/82,0,1) : 0;
   lvl(BUS.wind.g.gain,(.08+.3*c*(t<FIRE?1:0)+.28*beam+(t>BEAM_END?.25*Math.exp(-(t-BEAM_END)*.6):0))*live);
   lvl(BUS.wind.f.frequency,500+900*c+600*beam);
   const hum = t>CH&&t<FIRE ? .32*Math.pow(c,.8)*(.8+.2*Math.sin(t*(8+c*20))) : 0;
