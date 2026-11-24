@@ -434,6 +434,9 @@ function update(dt){
       for(let j=0;j<14;j++){ const a=R(0,6.283), v=R(100,380); const sz=R(4,12); add({type:'debris',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-120,rot:R(0,6),vr:R(-8,8),max:R(2.5,4),size:sz,poly:debrisPoly(sz),hot:true,shade:R(.7,1.1)}); }
       for(let j=0;j<8;j++){ const a=R(0,6.283), v=R(60,240); add({type:'fire',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-80,max:R(.8,1.5),size:R(50,100)*q[3]}); }
       rings.push({x,y,t0:t,dur:.6,maxR:380*q[3],w:26,col:'255,190,130'}); } });
+  if(!ev.reig && t>=REIG+.6){ ev.reig=1; snd('pulse'); const K=S.K, x=HERO.x+K.sho[0], y=HERO.y+(K.sho[1]+K.hip[1])/2;
+    rings.push({x,y,t0:t,dur:.8,maxR:420,w:28,col:'110,255,160',big:1});
+    for(let i=0;i<40;i++){ const a=R(0,6.283), v=R(120,320); add({type:'dust',x:HERO.x+Math.cos(a)*20,y:HERO.y-R(0,4),vx:Math.cos(a)*v,vy:-R(10,60),max:R(.7,1.4),size:R(3,7)}); } }
   if(!ev.blast && t>=BEAM_END+.02){ ev.blast=1; snd('blast');
     rings.push({x:IMP.x,y:IMP.y,t0:t,dur:2.1,maxR:3600,w:200,col:'200,230,255',big:1});
     rings.push({x:IMP.x,y:IMP.y,t0:t+.05,dur:1.2,maxR:1150,w:72,col:'255,200,150'});
@@ -451,9 +454,9 @@ function update(dt){
     const sc=spawnN(14*S.c,dt); for(let i=0;i<sc;i++) add({type:'scrap',x:HERO.x+R(-40,360),y:HERO.y-R(0,120),vx:-R(250,520)*S.c,vy:-R(20,140),rot:R(0,6),vr:R(-14,14),max:R(1.2,2.4),size:R(2.5,5),seed:R(0,6)});
     for(let i=0;i<d;i++) add({type:'dust',x:HERO.x+R(-60,160),y:HERO.y-R(0,4),vx:R(-160,-60)*S.c,vy:R(-30,-4),max:R(.8,1.6),size:R(2,6)});
   }
-  if(S.glow>.2 && t<BEAM_END+.3){
-    const n=spawnN(110*S.glow,dt), K=S.K;
-    for(let i=0;i<n;i++){ const u=Math.random(); const bx=HERO.x+lerp(K.hip[0],K.head[0],u)+R(-42,42), by=HERO.y+lerp(K.fF[1]+4,K.head[1]-20,Math.random()); add({type:'aura',x:bx,y:by,vx:R(-55,10),vy:R(-260,-120),max:R(.45,.9),size:R(6,15)}); }
+  if((S.glow>.2 && t<BEAM_END+.3) || reignite(t)>.15){
+    const n=spawnN(110*Math.max(S.glow,reignite(t)),dt), K=S.K, gk=auraGreen(t);
+    for(let i=0;i<n;i++){ const u=Math.random(); const bx=HERO.x+lerp(K.hip[0],K.head[0],u)+R(-42,42), by=HERO.y+lerp(K.fF[1]+4,K.head[1]-20,Math.random()); add({type:'aura',x:bx,y:by,vx:R(-55,10),vy:R(-260,-120),max:R(.45,.9),size:R(6,15),gk}); }
   }
   if(S.beam && S.beam.len>20){
     const b=S.beam, n=spawnN(80*(1-b.tail),dt), ca=Math.cos(b.ang), sa=Math.sin(b.ang);
@@ -879,10 +882,16 @@ function rooftop(t){
 
 
 /* flame-shaped aura around the hero, drawn behind (full) and in front (thin edge) of the figure */
+/* near the end the aura reignites and turns from blue to green, setting up the next scene */
+const REIG=21.0;
+function reignite(t){ return sstep(REIG,REIG+1.6,t); }
+function auraGreen(t){ return sstep(REIG+.5,REIG+2.4,t); }
+function mixCol(a,b,k){ return a.map((v,i)=>Math.round(lerp(v,b[i],k))).join(','); }
 function auraLevel(t,S){
   let a=S.glow;
   if(t>BEAM_END) a=Math.max(a,.55*Math.exp(-(t-BEAM_END)*.7));
   if(t>=SURGE&&t<BEAM_END) a*=1+.4*surgeK(t);
+  a=Math.max(a,reignite(t)*(1.1+.12*Math.sin(t*5)));
   return a;
 }
 function auraPath(cx,cy,rx,ry,t,ph){
@@ -901,25 +910,25 @@ function drawAura(t,S,front){
   const A=auraLevel(t,S); if(A<.02) return;
   const K=S.K, cx=HERO.x+(K.hip[0]+K.head[0])/2, cy=HERO.y+(K.fF[1]+K.head[1])/2+6;
   const pulse=1+.05*Math.sin(t*14)+.03*Math.sin(t*31);
-  const rx=(52+38*A)*pulse, ry=(78+52*A)*pulse;
+  const rx=(78+64*A)*pulse, ry=(115+85*A)*pulse, gk=auraGreen(t);
   ctx.globalCompositeOperation='lighter';
   if(!front){
     // light pooled on the roof
-    const fg=ctx.createRadialGradient(cx,HERO.y,0,cx,HERO.y,rx*1.8); fg.addColorStop(0,`rgba(80,160,255,${.45*A})`); fg.addColorStop(1,'rgba(40,110,255,0)');
+    const fg=ctx.createRadialGradient(cx,HERO.y,0,cx,HERO.y,rx*1.8); fg.addColorStop(0,`rgba(${mixCol([80,160,255],[70,240,130],gk)},${.45*A})`); fg.addColorStop(1,`rgba(${mixCol([40,110,255],[30,200,90],gk)},0)`);
     ctx.save(); ctx.translate(cx,HERO.y); ctx.scale(1,.22); ctx.translate(-cx,-HERO.y); ctx.fillStyle=fg; ctx.fillRect(cx-rx*1.8,HERO.y-rx*1.8,rx*3.6,rx*3.6); ctx.restore();
-    const layers=[[1.25,'40,100,255',.16],[1,'70,150,255',.26],[.78,'130,200,255',.3],[.55,'210,245,255',.28]];
+    const layers=[[1.25,mixCol([40,100,255],[20,190,80],gk),.16],[1,mixCol([70,150,255],[50,225,110],gk),.26],[.78,mixCol([130,200,255],[130,255,165],gk),.3],[.55,mixCol([210,245,255],[215,255,225],gk),.28]];
     layers.forEach((L,i)=>{
       const g=ctx.createRadialGradient(cx,cy+ry*.2,0,cx,cy,ry*L[0]*1.5);
       g.addColorStop(0,`rgba(${L[1]},${.04*A})`); g.addColorStop(.45,`rgba(${L[1]},${L[2]*A})`); g.addColorStop(1,`rgba(${L[1]},0)`);
       ctx.fillStyle=g; auraPath(cx,cy,rx*L[0],ry*L[0],t,i*1.7); ctx.fill();
     });
   } else {
-    ctx.lineWidth=1.6; ctx.strokeStyle=`rgba(190,235,255,${.35*A})`;
+    ctx.lineWidth=1.6; ctx.strokeStyle=`rgba(${mixCol([190,235,255],[170,255,190],gk)},${.35*A})`;
     auraPath(cx,cy,rx*.9,ry*.9,t,5.1); ctx.stroke();
     ctx.lineWidth=.8; ctx.strokeStyle=`rgba(255,255,255,${.3*A})`;
     auraPath(cx,cy,rx*.7,ry*.7,t,2.3); ctx.stroke();
     const nb=A>.3?Math.round(R(0,3.2)*A):0;
-    for(let i=0;i<nb;i++){ const a1=R(-Math.PI,0), a2=a1+R(-1.2,1.2); bolt(cx+Math.cos(a1)*rx*.4,cy+Math.sin(a1)*ry*.5,cx+Math.cos(a2)*rx*R(.9,1.3),cy+Math.sin(a2)*ry*R(.9,1.4),.9,1); }
+    for(let i=0;i<nb;i++){ const a1=R(-Math.PI,0), a2=a1+R(-1.2,1.2); bolt(cx+Math.cos(a1)*rx*.4,cy+Math.sin(a1)*ry*.5,cx+Math.cos(a2)*rx*R(.9,1.3),cy+Math.sin(a2)*ry*R(.9,1.4),.9,1,gk); }
   }
   ctx.globalCompositeOperation='source-over';
 }
@@ -927,7 +936,7 @@ function drawAura(t,S,front){
 
 /* spiralling gusts that wrap around the hero while he charges and fires */
 function drawWindSwirl(t,S){
-  const A=Math.max(S.c*(t<FIRE?1:0),S.beam?(1-S.beam.tail):0); if(A<.05) return;
+  const A=Math.max(S.c*(t<FIRE?1:0),S.beam?(1-S.beam.tail):0,reignite(t)*.75); if(A<.05) return; const gk=auraGreen(t);
   const K=S.K, cx=HERO.x+(K.hip[0]+K.head[0])/2, cy=HERO.y+(K.fF[1]+K.head[1])/2;
   ctx.globalCompositeOperation='lighter'; ctx.lineCap='round';
   const B=Math.min(1.3,A*1.15); ctx.lineCap='butt';
@@ -935,9 +944,9 @@ function drawWindSwirl(t,S){
     const r=50+i*16+40*B, sp=(2.4+i*.3)*(i%2?1:-1), a0=t*sp+i*1.9, len=1.1+.6*Math.sin(i*2.7+t*1.3);
     const tilt=-.12+.18*Math.sin(i*1.3), ry=r*(.38+.1*Math.sin(i));
     for(let j=0;j<10;j++){ const u0=a0+len*j/10, u1=a0+len*(j+1)/10, f=Math.sin(Math.PI*(j+.5)/10);
-      ctx.strokeStyle=`rgba(80,160,255,${.28*B*f})`; ctx.lineWidth=(6+12*B)*f;
+      ctx.strokeStyle=`rgba(${mixCol([80,160,255],[50,220,110],gk)},${.28*B*f})`; ctx.lineWidth=(6+12*B)*f;
       ctx.beginPath(); ctx.ellipse(cx,cy-10,r,ry,tilt,u0,u1); ctx.stroke();
-      ctx.strokeStyle=`rgba(200,232,255,${.75*B*f})`; ctx.lineWidth=(2+5*B)*f;
+      ctx.strokeStyle=`rgba(${mixCol([200,232,255],[190,255,205],gk)},${.75*B*f})`; ctx.lineWidth=(2+5*B)*f;
       ctx.beginPath(); ctx.ellipse(cx,cy-10,r,ry,tilt,u0,u1); ctx.stroke();
       ctx.strokeStyle=`rgba(255,255,255,${.6*B*f})`; ctx.lineWidth=(.6+1.4*B)*f;
       ctx.beginPath(); ctx.ellipse(cx,cy-10,r,ry,tilt,u0,u1); ctx.stroke(); }
@@ -1024,7 +1033,7 @@ function headDraw(hd,P,c,rim,g,wind,t,blowBase){
     curve([-1.8,.2],[-.4,1.6],[-1.6,3.4],BODY.skinS,.6);
     // eye: sclera, iris that glows with the energy, heavy upper lid
     poly([[4.4,-1],[8.1,-2.3],[8.5,-.7],[5.3,.2]],BODY.eye);
-    const ir=`rgb(${lerp(40,150,g)|0},${lerp(70,225,g)|0},${lerp(120,255,g)|0})`;
+    const ek=auraGreen(t), eg=Math.max(g,reignite(t)); const ir=`rgb(${mixCol([lerp(40,150,eg),lerp(70,225,eg),lerp(120,255,eg)],[lerp(40,120,eg),lerp(70,255,eg),lerp(60,150,eg)],ek)})`;
     ctx.fillStyle=ir; ctx.beginPath(); ctx.arc(7,-1,1.25,0,7); ctx.fill();
     ctx.fillStyle='#05060a'; ctx.beginPath(); ctx.arc(7.2,-1,.55,0,7); ctx.fill();
     stroke([[4,-1.4],[6,-2.4],[8.8,-2.7]],'#05060a',1.3);
@@ -1123,7 +1132,8 @@ function drawHero(t,S){
   if(S.glow>0){ const dx=S.sp.x-HERO.x-cx, dy=S.sp.y-HERO.y-cy, d=Math.hypot(dx,dy)||1; lx=lerp(lx,dx/d,S.glow); ly=lerp(ly,dy/d,S.glow); }
   const dl=Math.hypot(lx,ly)||1; lx/=dl; ly/=dl;
   const g=S.glow, open = t>IDLE_END+.3 && t<BEAM_END+.9;
-  const rimCol=`rgb(${lerp(120,190,g)|0},${lerp(140,240,g)|0},${lerp(200,255,g)|0})`;
+  const gk=auraGreen(t), gi=Math.max(g,reignite(t)*.9);
+  const rimCol=`rgb(${mixCol([lerp(120,190,gi),lerp(140,240,gi),lerp(200,255,gi)],[lerp(110,150,gi),lerp(150,255,gi),lerp(130,170,gi)],gk)})`;
   const off=.9+g*.6;
   // contact shadow on the roof
   ctx.fillStyle='rgba(0,0,8,.5)'; ctx.beginPath(); ctx.ellipse(HERO.x+2,HERO.y+.5,40,3.5,0,0,7); ctx.fill();
@@ -1180,11 +1190,11 @@ function boltPath(x0,y0,x1,y1,depth,out){
     boltPath(p[0],p[1],p[0]+Math.cos(ang)*bl,p[1]+Math.sin(ang)*bl,depth-1,out);
   }
 }
-function bolt(x0,y0,x1,y1,w,depth){
+function bolt(x0,y0,x1,y1,w,depth,gk=0){
   const paths=[]; boltPath(x0,y0,x1,y1,depth,paths);
   const draw=(width,col)=>{ ctx.strokeStyle=col; ctx.lineWidth=width; paths.forEach((pts,k)=>{ ctx.lineWidth=width*(k?0.55:1); ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); }); };
   ctx.lineCap='round'; ctx.lineJoin='round';
-  draw(w*7,'rgba(60,140,255,.18)'); draw(w*3,'rgba(130,200,255,.5)'); draw(w*1.2,'rgba(240,250,255,.95)');
+  draw(w*7,`rgba(${mixCol([60,140,255],[40,220,100],gk)},.18)`); draw(w*3,`rgba(${mixCol([130,200,255],[130,255,160],gk)},.5)`); draw(w*1.2,`rgba(${mixCol([240,250,255],[235,255,240],gk)},.95)`);
 }
 function drawSphere(t,S){
   if(S.sr<=0.5) return;
@@ -1266,7 +1276,7 @@ function drawAdditiveParticles(t,S){
     const k=p.life/p.max;
     switch(p.type){
       case 'charge': ctx.strokeStyle=`rgba(150,220,255,${.9*Math.min(1,p.life*6)})`; ctx.lineWidth=p.w; ctx.beginPath(); ctx.moveTo(p.px,p.py); ctx.lineTo(p.x+(p.x-p.px)*1.5,p.y+(p.y-p.py)*1.5); ctx.stroke(); ctx.fillStyle='rgba(220,245,255,.9)'; ctx.fillRect(p.x-.8,p.y-.8,1.6,1.6); break;
-      case 'aura': ctx.fillStyle=`rgba(70,150,255,${.3*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.5*(1-k*.5),p.size*(1.8+k*2.6),0,0,7); ctx.fill(); ctx.fillStyle=`rgba(200,240,255,${.35*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.15,p.size*(1+k*1.6),0,0,7); ctx.fill(); break;
+      case 'aura': ctx.fillStyle=`rgba(${mixCol([70,150,255],[50,230,110],p.gk||0)},${.3*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.5*(1-k*.5),p.size*(1.8+k*2.6),0,0,7); ctx.fill(); ctx.fillStyle=`rgba(${mixCol([200,240,255],[200,255,215],p.gk||0)},${.35*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.15,p.size*(1+k*1.6),0,0,7); ctx.fill(); break;
       case 'spark': { const hot=p.hot; ctx.strokeStyle= hot?`rgba(255,${190-120*k|0},90,${1-k})`:`rgba(${200-60*k|0},${235-30*k|0},255,${1-k})`; ctx.lineWidth=p.thin?1:1.6; const vx=p.x-p.px, vy=p.y-p.py; ctx.beginPath(); ctx.moveTo(p.x-vx*2.5,p.y-vy*2.5); ctx.lineTo(p.x,p.y); ctx.stroke(); break; }
       case 'glass': { const gl=.45+.55*Math.abs(Math.sin(p.rot*2+p.seed)); ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=`rgba(170,215,255,${gl*(1-k*.7)})`; ctx.beginPath(); ctx.moveTo(-p.size,-p.size*.4); ctx.lineTo(p.size,0); ctx.lineTo(-p.size*.2,p.size*.7); ctx.closePath(); ctx.fill(); ctx.restore(); break; }
       case 'fire': { const sz=p.size*(.5+k*1.3); ctx.globalAlpha=Math.pow(1-k,1.5); ctx.drawImage(FIRE_SPR[Math.min(11,k*11|0)],p.x-sz,p.y-sz,sz*2,sz*2); ctx.globalAlpha=1; break; }
@@ -1337,6 +1347,7 @@ function drawScreenFX(t,S,dt){
     ctx.fillStyle=`rgba(225,236,255,${a})`; ctx.font='64px Anton, Impact, sans-serif'; ctx.fillText('AZURE ROOFTOP STRIKE',W/2,H-140);
     ctx.fillStyle=`rgba(98,200,255,${a})`; ctx.fillRect(W/2-120,H-122,240,2);
     ctx.fillStyle=`rgba(160,175,215,${a})`; ctx.font='600 16px "JetBrains Mono", monospace'; ctx.fillText('SCENE 01  ·  NIGHT  ·  ROOFTOP, 41ST FLOOR',W/2,H-94);
+    const na=sstep(TITLE+1.2,TITLE+2,t)*(1-sstep(DUR-1,DUR-.3,t)); ctx.fillStyle=`rgba(110,255,160,${na})`; ctx.font='600 14px "JetBrains Mono", monospace'; ctx.fillText('NEXT  →  SCENE 02',W/2,H-68);
     ctx.restore(); }
   // fades
   const fade = Math.max(1-sstep(0,.9,t), sstep(DUR-.8,DUR,t));
@@ -1459,10 +1470,10 @@ function audioLevels(t){
   const beam=S.beam? (1-S.beam.tail)*clamp(S.beam.w/82,0,1) : 0;
   lvl(BUS.wind.g.gain,(.08+.3*c*(t<FIRE?1:0)+.28*beam+(t>BEAM_END?.25*Math.exp(-(t-BEAM_END)*.6):0))*live);
   lvl(BUS.wind.f.frequency,500+900*c+600*beam);
-  const hum = t>CH&&t<FIRE ? .32*Math.pow(c,.8)*(.8+.2*Math.sin(t*(8+c*20))) : 0;
+  const rg=reignite(t), hum = t>CH&&t<FIRE ? .32*Math.pow(c,.8)*(.8+.2*Math.sin(t*(8+c*20))) : rg>0 ? .26*rg*(.8+.2*Math.sin(t*14))*(1-sstep(DUR-1.2,DUR-.2,t)) : 0;
   lvl(BUS.hum.g.gain,hum*live,.03);
-  lvl(BUS.o1.frequency,55+70*c); lvl(BUS.o2.frequency,110+150*c);
-  lvl(BUS.hum.f.frequency,250+2400*c);
+  lvl(BUS.o1.frequency,55+70*c+60*rg); lvl(BUS.o2.frequency,110+150*c+180*rg);
+  lvl(BUS.hum.f.frequency,250+2400*Math.max(c*(t<FIRE?1:0),rg));
   lvl(BUS.beamN.g.gain,.55*beam*live,.03);
   lvl(BUS.beamS.g.gain,.22*beam*live,.03);
   lvl(BUS.sizzle.g.gain,.12*beam*(.7+.3*Math.sin(t*47))*live,.02);
