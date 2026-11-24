@@ -275,14 +275,17 @@ const CAM=[
   [23.2,520,530,1.8, 0],
   [25.0,720,470,1.12,0],
   [26.0,700,472,1.1, 0]];
+const CAMM=CAM.map((k,i)=>{
+  if(i===0||i===CAM.length-1||k[0]===FIRE||k[0]===12.8) return [0,0,0,0,0];
+  const a=CAM[i-1], b=CAM[i+1], dt=b[0]-a[0];
+  return [0,(b[1]-a[1])/dt,(b[2]-a[2])/dt,(b[3]-a[3])/dt,(b[4]-a[4])/dt];
+});
 function camAt(t){
-  const k=CAM; let i=0; while(i<k.length-2 && t>k[i+1][0]) i++;
-  const a=k[Math.max(0,i-1)], b=k[i], c=k[i+1], d=k[Math.min(k.length-1,i+2)];
-  let u=clamp((t-b[0])/(c[0]-b[0]),0,1);
-  const whip = b[0]===FIRE;
-  if(whip) u=ease(u);
-  const cr=(j)=> whip ? lerp(b[j],c[j],u) : 0.5*((2*b[j])+(-a[j]+c[j])*u+(2*a[j]-5*b[j]+4*c[j]-d[j])*u*u+(-a[j]+3*b[j]-3*c[j]+d[j])*u*u*u);
-  return {x:cr(1)+Math.sin(t*.7)*4, y:cr(2)+Math.sin(t*.9+1)*3, z:Math.max(1.05,cr(3)), r:cr(4)};
+  let i=0; while(i<CAM.length-2 && t>CAM[i+1][0]) i++;
+  const b=CAM[i], c=CAM[i+1], h=c[0]-b[0], u=clamp((t-b[0])/h,0,1), u2=u*u, u3=u2*u;
+  const h00=2*u3-3*u2+1, h10=u3-2*u2+u, h01=-2*u3+3*u2, h11=u3-u2;
+  const f=j=>h00*b[j]+h10*h*CAMM[i][j]+h01*c[j]+h11*h*CAMM[i+1][j];
+  return {x:f(1)+Math.sin(t*.7)*4, y:f(2)+Math.sin(t*.9+1)*3, z:Math.max(1.05,f(3)), r:f(4)};
 }
 function shakeAmp(t){
   let a=0; const c=chargeAt(t);
@@ -404,7 +407,7 @@ function update(dt){
   }
   if(t>BEAM_END){
     const k=Math.exp(-(t-BEAM_END)*.18);
-    spawnSmoke(spawnN(26*k,dt),S.cr*1.1,false);
+    spawnSmoke(spawnN(19*k,dt),S.cr*1.1,false);
     const e=spawnN(16*k,dt); for(let i=0;i<e;i++) add({type:'ember',x:IMP.x+R(-60,50),y:IMP.y+R(-50,60),vx:R(-50,20),vy:R(-90,-20),max:R(1.5,3),size:R(.8,2),seed:R(0,6)});
     if(Math.random()<dt*3*k) spawnDebris(1,false,120);
   }
@@ -610,7 +613,8 @@ function drawSmokeAndDebris(t,S){
   for(const p of parts){
     if(p.type==='smoke'){
       const k=p.life/p.max, sz=lerp(p.s0,p.s1,1-Math.pow(1-k,2));
-      const a=.42*sstep(0,.08,k)*Math.pow(1-k,1.2);
+      const a=.46*sstep(0,.08,k)*Math.pow(1-k,1.2);
+      if(a<.02) continue;
       const near=Math.max(0,1-Math.hypot(p.x-IMP.x,p.y-IMP.y)/380);
       const r=34+beamLit*near*70+fireLit*near*110, gg=38+beamLit*near*110+fireLit*near*40, b=52+beamLit*near*190+fireLit*near*8;
       // each puff is a cluster of three lumps so the cloud billows instead of blurring into a haze
@@ -618,10 +622,9 @@ function drawSmokeAndDebris(t,S){
         const ang=p.seed*2.1+j*2.09+k*.8, off=sz*.32*(j?1:0);
         const x=p.x+Math.cos(ang)*off, y=p.y+Math.sin(ang)*off*.7, rr=sz*(j?.62:.78);
         const sh=j===0?1:.82+.1*j;
-        const g=ctx.createRadialGradient(x-rr*.15,y-rr*.2,0,x,y,rr);
-        g.addColorStop(0,`rgba(${r*sh*1.15|0},${gg*sh*1.15|0},${b*sh*1.15|0},${a})`); g.addColorStop(.55,`rgba(${r*sh|0},${gg*sh|0},${b*sh|0},${a*.85})`); g.addColorStop(.85,`rgba(${r*sh*.7|0},${gg*sh*.7|0},${b*sh*.7|0},${a*.35})`); g.addColorStop(1,`rgba(${r*.5|0},${gg*.5|0},${b*.5|0},0)`);
-        ctx.fillStyle=g; ctx.fillRect(x-rr,y-rr,rr*2,rr*2);
+        ctx.globalAlpha=a; ctx.drawImage(smokeBlob(r*sh,gg*sh,b*sh),x-rr,y-rr,rr*2,rr*2);
       }
+      ctx.globalAlpha=1;
     }
   }
   for(const p of parts){
@@ -688,6 +691,24 @@ function drawFireballBody(t){
   c.addColorStop(0,`rgba(255,250,225,${.9*Math.exp(-e*2.2)})`); c.addColorStop(.5,`rgba(255,190,90,${.6*Math.exp(-e*1.6)})`); c.addColorStop(1,'rgba(255,120,40,0)');
   ctx.fillStyle=c; ctx.fillRect(cx-fr*.5,cy-fr*.5,fr,fr);
 }
+
+
+/* cached soft-blob sprites: drawing an image is far cheaper than building a gradient per puff */
+const BLOBS=new Map();
+function smokeBlob(r,g,b){
+  r=Math.round(r/12)*12; g=Math.round(g/12)*12; b=Math.round(b/12)*12;
+  const key=r+','+g+','+b; let c=BLOBS.get(key); if(c) return c;
+  c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
+  const gr=x.createRadialGradient(27,25,0,32,32,32);
+  const f=(m,a)=>`rgba(${Math.min(255,r*m)|0},${Math.min(255,g*m)|0},${Math.min(255,b*m)|0},${a})`;
+  gr.addColorStop(0,f(1.15,1)); gr.addColorStop(.55,f(1,.85)); gr.addColorStop(.85,f(.7,.35)); gr.addColorStop(1,f(.5,0));
+  x.fillStyle=gr; x.fillRect(0,0,64,64); BLOBS.set(key,c); return c;
+}
+const FIRE_SPR=[];
+for(let i=0;i<12;i++){ const k=i/11, c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
+  const g=x.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,`rgba(255,${210-90*k|0},${120-100*k|0},.42)`); g.addColorStop(.45,`rgba(240,${100-50*k|0},25,.26)`); g.addColorStop(1,'rgba(160,30,10,0)');
+  x.fillStyle=g; x.fillRect(0,0,64,64); FIRE_SPR.push(c); }
 
 /* city set dressing drawn live */
 function searchlights(t){
@@ -1021,7 +1042,7 @@ function drawHero(t,S){
   // contact shadow on the roof
   ctx.fillStyle='rgba(0,0,8,.5)'; ctx.beginPath(); ctx.ellipse(HERO.x+2,HERO.y+.5,40,3.5,0,0,7); ctx.fill();
   // offscreen hero canvas sized to the current zoom
-  const px=Math.min(6,Math.max(1,Math.ceil(cam.z*s*1.3*2)/2));
+  const px=Math.min(4.5*Q,Math.max(1,Math.ceil(cam.z*s*1.3*2)/2));
   const pw=Math.ceil(HB.w*px), ph=Math.ceil(HB.h*px);
   if(HC.width!==pw||HC.height!==ph){ HC.width=pw; HC.height=ph; } else { hctx.setTransform(1,0,0,1,0,0); hctx.clearRect(0,0,pw,ph); }
   hctx.setTransform(px,0,0,px,-HB.x*px,-HB.y*px);
@@ -1161,7 +1182,7 @@ function drawAdditiveParticles(t,S){
       case 'aura': ctx.fillStyle=`rgba(70,150,255,${.3*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.5*(1-k*.5),p.size*(1.8+k*2.6),0,0,7); ctx.fill(); ctx.fillStyle=`rgba(200,240,255,${.35*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.15,p.size*(1+k*1.6),0,0,7); ctx.fill(); break;
       case 'spark': { const hot=p.hot; ctx.strokeStyle= hot?`rgba(255,${190-120*k|0},90,${1-k})`:`rgba(${200-60*k|0},${235-30*k|0},255,${1-k})`; ctx.lineWidth=p.thin?1:1.6; const vx=p.x-p.px, vy=p.y-p.py; ctx.beginPath(); ctx.moveTo(p.x-vx*2.5,p.y-vy*2.5); ctx.lineTo(p.x,p.y); ctx.stroke(); break; }
       case 'glass': { const gl=.45+.55*Math.abs(Math.sin(p.rot*2+p.seed)); ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=`rgba(170,215,255,${gl*(1-k*.7)})`; ctx.beginPath(); ctx.moveTo(-p.size,-p.size*.4); ctx.lineTo(p.size,0); ctx.lineTo(-p.size*.2,p.size*.7); ctx.closePath(); ctx.fill(); ctx.restore(); break; }
-      case 'fire': { const sz=p.size*(.5+k*1.3), a=Math.pow(1-k,1.5); const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz); g.addColorStop(0,`rgba(255,${210-90*k|0},${120-100*k|0},${.42*a})`); g.addColorStop(.45,`rgba(240,${100-50*k|0},25,${.26*a})`); g.addColorStop(1,'rgba(160,30,10,0)'); ctx.fillStyle=g; ctx.fillRect(p.x-sz,p.y-sz,sz*2,sz*2); break; }
+      case 'fire': { const sz=p.size*(.5+k*1.3); ctx.globalAlpha=Math.pow(1-k,1.5); ctx.drawImage(FIRE_SPR[Math.min(11,k*11|0)],p.x-sz,p.y-sz,sz*2,sz*2); ctx.globalAlpha=1; break; }
       case 'ember': { const f=.6+.4*Math.sin(t*14+p.seed*5); ctx.fillStyle=`rgba(255,${150+60*f|0},70,${(1-k)*f})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,7); ctx.fill(); break; }
       case 'debris': if(p.hot && p.life<1.6){ ctx.fillStyle=`rgba(255,120,40,${.35*(1-p.life/1.6)})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.min(p.size,16)*1.6,0,7); ctx.fill(); } break;
     }
@@ -1215,11 +1236,12 @@ function drawScreenFX(t,S,dt){
   // flash
   let fl=0;
   if(t>=FIRE) fl+=.35*Math.exp(-(t-FIRE)*10);
-  if(t>=IMPACT) fl+=.9*Math.exp(-(t-IMPACT)*5);
+  if(t>=IMPACT){ const e=t-IMPACT; fl+= e<.07 ? 1 : Math.exp(-(e-.07)*3.2); }
   if(t>=BEAM_END) fl+=.9*Math.exp(-(t-BEAM_END)*3);
   if(t>=SURGE) fl+=.75*Math.exp(-(t-SURGE)*5);
   if(reduceMotion) fl*=.3;
   if(fl>.003){ ctx.fillStyle=`rgba(215,235,255,${Math.min(.95,fl)})`; ctx.fillRect(0,0,W,H); }
+  impactFlash(t);
   // vignette
   const v=ctx.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*1.05);
   v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,8,.75)');
@@ -1238,6 +1260,57 @@ function drawScreenFX(t,S,dt){
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,58); ctx.fillRect(0,H-58,W,58);
 }
 
+
+/* screen-space impact flash: a bloom that swells from the hit, an anamorphic streak and a starburst */
+function worldToScreen(x,y){
+  const dx=(x-cam.x)*cam.z, dy=(y-cam.y)*cam.z, c=Math.cos(cam.r), sn=Math.sin(cam.r);
+  return [W/2+shk.x+dx*c-dy*sn, H/2+shk.y+dx*sn+dy*c];
+}
+function impactFlash(t){
+  const evs=[[IMPACT,1,'200,230,255'],[SURGE,.7,'200,235,255'],[BEAM_END,.85,'255,215,170']];
+  const k=reduceMotion?.3:1;
+  ctx.globalCompositeOperation='lighter';
+  for(const [t0,str,col] of evs){
+    const e=t-t0; if(e<0||e>1.6) continue;
+    const [x,y]=worldToScreen(IMP.x,IMP.y);
+    const R0=H*(.5+1.6*(1-Math.exp(-e*5))), a=str*k*Math.exp(-e*2.6);
+    let g=ctx.createRadialGradient(x,y,0,x,y,R0);
+    g.addColorStop(0,`rgba(255,255,255,${.95*a})`); g.addColorStop(.25,`rgba(${col},${.6*a})`); g.addColorStop(1,`rgba(${col},0)`);
+    ctx.fillStyle=g; ctx.fillRect(x-R0,y-R0,R0*2,R0*2);
+    // anamorphic lens streak
+    const sa=str*k*Math.exp(-e*3.5), sh=36*str*(1-e/1.6)+4;
+    ctx.save(); ctx.translate(x,y); ctx.scale(1,sh/W);
+    g=ctx.createRadialGradient(0,0,0,0,0,W*1.1); g.addColorStop(0,`rgba(255,255,255,${.9*sa})`); g.addColorStop(.3,`rgba(${col},${.45*sa})`); g.addColorStop(1,`rgba(${col},0)`);
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,W*1.1,0,7); ctx.fill(); ctx.restore();
+    // starburst rays
+    const ra=str*k*Math.exp(-e*4.5);
+    if(ra>.02){ ctx.fillStyle=`rgba(255,255,255,${.55*ra})`;
+      for(let i=0;i<14;i++){ const ang=i/14*6.283+e*.4+(i%2)*.1, L=W*(.35+.45*((i*7)%5)/5)*(.6+e), w=.012+.01*(i%3);
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(ang-w)*L,y+Math.sin(ang-w)*L); ctx.lineTo(x+Math.cos(ang+w)*L,y+Math.sin(ang+w)*L); ctx.closePath(); ctx.fill(); } }
+    // expanding chromatic ring
+    const rr=H*(.2+2.2*e), rA=str*k*Math.max(0,1-e/1.1);
+    ctx.lineWidth=18*(1-e/1.6)+2;
+    [['255,120,120',0],['120,255,180',6],['130,170,255',12]].forEach(([c2,o])=>{ ctx.strokeStyle=`rgba(${c2},${.18*rA})`; ctx.beginPath(); ctx.arc(x,y,rr+o,0,7); ctx.stroke(); });
+  }
+  ctx.globalCompositeOperation='source-over';
+}
+
+/* frame blending for the whip pan and the big hits, so the fastest moves smear like a camera shutter */
+const PREV=document.createElement('canvas'), pctx=PREV.getContext('2d');
+function blurAmount(t){
+  let m=0;
+  if(t>FIRE&&t<FIRE+.45) m=Math.max(m,.55*Math.sin(Math.PI*(t-FIRE)/.45));
+  for(const t0 of [IMPACT,SURGE,BEAM_END]) if(t>t0&&t<t0+.5) m=Math.max(m,.35*(1-(t-t0)/.5));
+  return reduceMotion?0:m;
+}
+function motionBlur(t){
+  const near = blurAmount(t)>0 || blurAmount(t+.1)>0;
+  if(!near) return;
+  if(PREV.width!==canvas.width||PREV.height!==canvas.height){ PREV.width=canvas.width; PREV.height=canvas.height; pctx.drawImage(canvas,0,0); return; }
+  const m=blurAmount(t);
+  if(m>0 && lastDt>0){ ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=m; ctx.drawImage(PREV,0,0); ctx.globalAlpha=1; }
+  pctx.drawImage(canvas,0,0);
+}
 let lastDt=1/60;
 function render(){
   const t=T, S=computeState(t);
@@ -1257,6 +1330,7 @@ function render(){
   drawSphere(t,S);
   drawAdditiveParticles(t,S);
   drawScreenFX(t,S,lastDt);
+  motionBlur(t);
 }
 
 
@@ -1335,10 +1409,11 @@ function snd(name){
 }
 
 /* ---------- loop + UI ---------- */
+let Q=1, emaDt=1/60, qFrames=0;
 function resize(){
   const r=canvas.getBoundingClientRect();
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=Math.min(1920,Math.round(r.width*dpr));
+  const w=Math.max(320,Math.min(1920,Math.round(r.width*dpr*Q)));
   canvas.width=w; canvas.height=Math.round(w*9/16);
   s=canvas.width/W;
 }
@@ -1350,7 +1425,10 @@ const beats=[...track.querySelectorAll('.beat')], BEATS=[0,IDLE_END,FIRE,SURGE,B
 function fmt(x){ const m=Math.floor(x/60), sec=x-m*60; return String(m).padStart(2,'0')+':'+sec.toFixed(2).padStart(5,'0'); }
 function seek(t){ reset(); audioLive=false; const st=1/60; while(T<t-1e-6){ const d=Math.min(st,t-T); T+=d; update(d);} audioLive=true; }
 function frame(now){
-  let dt=Math.min(.05,(now-last)/1000); last=now;
+  const raw=(now-last)/1000; let dt=Math.min(.05,raw); last=now;
+  // adaptive resolution: drop render scale when frames run slow, recover when there is headroom
+  if(raw<.25){ emaDt=emaDt*.92+raw*.08; if(++qFrames>45){ qFrames=0;
+    if(emaDt>1/42 && Q>.5){ Q=Math.max(.5,Q-.1); resize(); } else if(emaDt<1/57 && Q<1){ Q=Math.min(1,Q+.05); resize(); } } }
   lastDt = playing? dt*speed : 0;
   if(playing){ let rem=dt*speed; while(rem>1e-6){ const d=Math.min(1/60,rem); T+=d; update(d); rem-=d; } if(T>=DUR) reset(); }
   audioLevels(T);
