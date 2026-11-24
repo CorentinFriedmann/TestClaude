@@ -301,9 +301,10 @@ function computeState(t){
   const P=poseAt(t), K=skel(P), c=chargeAt(t);
   const hm={x:HERO.x+(K.hN[0]+K.hF[0])/2, y:HERO.y+(K.hN[1]+K.hF[1])/2};
   const fd=dirA(P.fN);
-  const sp={x:hm.x+fd[0]*7, y:hm.y+fd[1]*7};
   let sr=0;
-  if(t<FIRE) sr = t>CH+.05 ? 3+15*c : 0; else sr=Math.max(0,18*(1-(t-FIRE)/.12));
+  if(t<FIRE) sr = t>CH+.05 ? 4+30*c : 0; else sr=Math.max(0,34*(1-(t-FIRE)/.12));
+  const so=7+(t<FIRE?sr*.55:0);
+  const sp={x:hm.x+fd[0]*so, y:hm.y+fd[1]*so};
   let beam=null;
   if(t>=BEAM_START && t<BEAM_END+.5){
     const full=Math.hypot(IMP.x-sp.x,IMP.y-sp.y), ang=Math.atan2(IMP.y-sp.y,IMP.x-sp.x);
@@ -1015,7 +1016,7 @@ function drawHero(t,S){
 function drawGlowOverlays(t,S){
   setLayer(1); ctx.globalCompositeOperation='lighter';
   const rad=(x,y,r,col,a)=>{ if(a<=0.002) return; const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,`rgba(${col},${a})`); g.addColorStop(.35,`rgba(${col},${a*.35})`); g.addColorStop(1,`rgba(${col},0)`); ctx.fillStyle=g; ctx.fillRect(x-r,y-r,r*2,r*2); };
-  if(t<FIRE && S.c>0) rad(S.sp.x,S.sp.y,80+420*S.c,'50,130,255',.4*S.c);
+  if(t<FIRE && S.c>0) rad(S.sp.x,S.sp.y,110+560*S.c,'50,130,255',.42*S.c);
   if(S.beam){ const b=S.beam, k=1-b.tail;
     rad(b.o.x,b.o.y,700,'60,140,255',.65*k);
     ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=440; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
