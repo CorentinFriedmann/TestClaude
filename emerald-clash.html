@@ -79,7 +79,7 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
     <div class="beat" style="flex:5.6"><span class="n">04.0</span><span class="l">Rival</span></div>
     <div class="beat" style="flex:1.15"><span class="n">09.6</span><span class="l">Leap</span></div>
     <div class="beat" style="flex:2.85"><span class="n">10.8</span><span class="l">Clash</span></div>
-    <div class="beat" style="flex:7.4"><span class="n">13.6</span><span class="l">Aura duel</span></div>
+    <div class="beat" style="flex:7.4"><span class="n">13.6</span><span class="l">Auras collide</span></div>
     <div class="beat" style="flex:6"><span class="n">21.0</span><span class="l">Standoff</span></div>
     <div class="head" id="head"></div>
   </div>
@@ -300,10 +300,10 @@ const CAM=[
   [13.5,805,430,1.75, -0.05],
   [14.2,800,470,1.2,   0],
   [15.4,800,485,1.18, 0],
-  [16.6,812,500,1.38, 0.025],
-  [17.8,800,490,1.28,-0.02],
+  [16.6,810,470,1.1,  0.02],
+  [17.8,808,470,1.06,-0.02],
   [18.6,808,470,1.12, 0],
-  [20.3,808,482,1.32, 0.03],
+  [20.3,808,475,1.18, 0.03],
   [21.0,808,470,1.15, 0],
   [23.4,800,462,1.08, 0],
   [27.0,800,462,1.05, 0]];
@@ -1525,7 +1525,7 @@ function snd(name){
 /* =====================  SCENE 02 : EMERALD CLASH  ===================== */
 /* Scene 1 already happened: its beats sit in negative time, so the tower starts wrecked and smoking. */
 const T_EYES=4.0, T_IGN=6.2, T_FLARE=8.0, T_CROUCH=9.6, T_LEAP=10.0, T_CLASH=10.75, T_SEP=13.6, T_LAND=14.4;
-const T_DUEL=15.4, T_WAR=18.4, T_WEND=21.0, WAVES=[15.7,16.35,16.95,17.45,17.85], WT=.38;
+const T_DUEL=15.4, T_WAR=17.6, T_WEND=21.0, WAVES=[], WT=.38;
 const CLASH={x:808,y:432};
 const HOME_H={x:420,y:620}, HOME_R={x:1196,y:IMP.y+112};
 const RIVAL={x:HOME_R.x,y:HOME_R.y};
@@ -1537,6 +1537,7 @@ POSES.thrown={lean:-.6,tF:.9,  sF:1.2, tB:.3,  sB:.8,   uN:2.4, fN:2.8, uF:-1.2,
 POSES.land  ={lean:.32,tF:1.0, sF:-.3, tB:-.95,sB:-.6,  uN:.95,fN:1.35,uF:-.5,fF:.2};
 POSES.palm  ={lean:.28,tF:.85,sF:0,  tB:-.75,sB:-.42, uN:1.62,fN:1.6, uF:.55,fF:1.9};
 POSES.push  ={lean:.42,tF:1.0, sF:.1, tB:-.88,sB:-.52, uN:1.62,fN:1.6, uF:1.5,fF:1.58};
+POSES.roar  ={lean:-.12,tF:.8,sF:-.18,tB:-.72,sB:-.36,uN:-.35,fN:-.95,uF:-.28,fF:-.85};
 POSES.guard ={lean:.12,tF:.55, sF:-.05,tB:-.62,sB:-.26, uN:.9, fN:2.3, uF:.7, fF:2.0};
 const bez=(a,c,b,u)=>({x:(1-u)*(1-u)*a.x+2*(1-u)*u*c.x+u*u*b.x, y:(1-u)*(1-u)*a.y+2*(1-u)*u*c.y+u*u*b.y});
 function heroPos(t){
@@ -1569,6 +1570,7 @@ function poseFor(t,who){
   else if(t<T_LAND) P=POSES.thrown;
   else if(t<T_LAND+.8) P=POSES.land;
   else if(t>=T_WAR-.25 && t<T_WEND) P=POSES.push;
+  else if(t>=T_DUEL && t<T_WAR-.25) P=POSES.roar;
   else if(WAVES.some(w=>t>w-.14&&t<w+.3)) P=POSES.palm;
   else P=POSES.guard;
   P={...P};
@@ -1596,8 +1598,8 @@ function stepRival(t,dt){
 }
 
 /* aura levels and colors */
-function heroA(t){ let a=1; a=lerp(a,1.55,sstep(T_FLARE,T_FLARE+.5,t)); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); a=lerp(a,1.9,sstep(T_WAR-.3,T_WAR+.2,t)); a=lerp(a,1.3,sstep(T_WEND,T_WEND+1.2,t)); return a*(1+.06*Math.sin(t*5)); }
-function rivalA(t){ let a=1.3*sstep(T_IGN,T_IGN+.6,t); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); a=lerp(a,1.9,sstep(T_WAR-.3,T_WAR+.2,t)); a=lerp(a,1.3,sstep(T_WEND,T_WEND+1.2,t)); return a*(1+.06*Math.sin(t*5.6+1)); }
+function heroA(t){ let a=1; a=lerp(a,1.55,sstep(T_FLARE,T_FLARE+.5,t)); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); a=lerp(a,1.7,sstep(T_DUEL,T_WAR-.3,t)); a=lerp(a,1.9,sstep(T_WAR-.3,T_WAR+.2,t)); a=lerp(a,1.3,sstep(T_WEND,T_WEND+1.2,t)); return a*(1+.06*Math.sin(t*5)); }
+function rivalA(t){ let a=1.3*sstep(T_IGN,T_IGN+.6,t); a=lerp(a,1.25,sstep(T_CLASH-.15,T_CLASH+.05,t)); a=lerp(a,1.35,sstep(T_SEP,T_SEP+1,t)); a=lerp(a,1.7,sstep(T_DUEL,T_WAR-.3,t)); a=lerp(a,1.9,sstep(T_WAR-.3,T_WAR+.2,t)); a=lerp(a,1.3,sstep(T_WEND,T_WEND+1.2,t)); return a*(1+.06*Math.sin(t*5.6+1)); }
 function rivalAlpha(t){ return sstep(T_EYES+.4,T_EYES+1.8,t); }
 function reignite(t){ return 1; }
 function auraGreen(t){ return 1; }
@@ -1608,11 +1610,25 @@ const GREEN=[[20,190,80],[50,225,110],[130,255,165],[215,255,225],[70,240,130],[
 const RED=[[190,20,30],[235,50,50],[255,120,110],[255,220,215],[255,70,60],[255,170,160]];
 const auraCol=(i,rk)=>mixCol(GREEN[i],RED[i],rk);
 
-function drawAuraAt(t,K,pos,sg,A,rk,front){
+/* the auras swell until they meet, then press against each other along a shared seam */
+function auraGrow(t){
+  if(t<T_DUEL) return 1;
+  let g;
+  if(t<T_WAR){ const u=(t-T_DUEL)/(T_WAR-T_DUEL); g=lerp(1,1.95,ease(u))+.09*Math.sin(u*Math.PI*8)*(1-u); }
+  else g=1.95+.35*sstep(T_WAR,T_WAR+.4,t)+.05*Math.sin(t*7);
+  if(t>T_WEND) g=lerp(g,1,sstep(T_WEND,T_WEND+1.2,t));
+  return g;
+}
+const contact=t=>t>=T_WAR&&t<T_WEND;
+function seamB(t){ return 808+62*Math.sin((t-T_WAR)*1.6)+18*Math.sin(t*5); }
+function seamX(y,t){ return seamB(t)+18*Math.sin(y*.02+t*6)+8*Math.sin(y*.05-t*9); }
+function clipSide(t,side){ ctx.beginPath(); const far=side<0?-6000:6000; ctx.moveTo(far,-3000); for(let y=-3000;y<=3000;y+=40) ctx.lineTo(seamX(y,t),y); ctx.lineTo(far,3000); ctx.closePath(); ctx.clip(); }
+function drawAuraAt(t,K,pos,sg,A,rk,front,gs=1){
   if(A<.02) return;
+  const clipped=contact(t)&&gs>1.5; if(clipped){ ctx.save(); clipSide(t,rk?1:-1); }
   const cx=pos.x+sg*(K.hip[0]+K.head[0])/2, cy=pos.y+(K.fF[1]+K.head[1])/2+6;
   const pulse=1+.05*Math.sin(t*14+rk*2)+.03*Math.sin(t*31);
-  const rx=(78+64*A)*pulse, ry=(115+85*A)*pulse;
+  const rx=(78+64*A)*pulse*gs, ry=(115+85*A)*pulse*Math.sqrt(gs);
   ctx.globalCompositeOperation='lighter';
   if(!front){
     if(grounded(t)){ const gy=pos.y; const fg=ctx.createRadialGradient(cx,gy,0,cx,gy,rx*1.8); fg.addColorStop(0,`rgba(${auraCol(4,rk)},${.45*A})`); fg.addColorStop(1,`rgba(${auraCol(0,rk)},0)`);
@@ -1628,6 +1644,7 @@ function drawAuraAt(t,K,pos,sg,A,rk,front){
     for(let i=0;i<nb;i++){ const a1=R(-Math.PI,0), a2=a1+R(-1.2,1.2); bolt(cx+Math.cos(a1)*rx*.4,cy+Math.sin(a1)*ry*.5,cx+Math.cos(a2)*rx*R(.9,1.3),cy+Math.sin(a2)*ry*R(.9,1.4),.9,1,1,rk); }
   }
   ctx.globalCompositeOperation='source-over';
+  if(clipped) ctx.restore();
 }
 function swirlAt(t,K,pos,sg,A,rk){
   if(A<.05) return;
@@ -1667,9 +1684,9 @@ function drawFighter(t,o){
   ctx.fillStyle=bg; ctx.fillRect(HB.x,HB.y,HB.w,HB.h);
   ctx.globalCompositeOperation='source-over';
   ctx=main; BODY=saved;
-  drawAuraAt(t,K,o.pos,sg,o.A*o.alpha,o.rk,false);
+  drawAuraAt(t,K,o.pos,sg,o.A*o.alpha,o.rk,false,auraGrow(t));
   ctx.save(); ctx.globalAlpha=o.alpha; ctx.translate(o.pos.x,o.pos.y); ctx.scale(sg,1); ctx.drawImage(cv,HB.x,HB.y,HB.w,HB.h); ctx.restore();
-  drawAuraAt(t,K,o.pos,sg,o.A*o.alpha,o.rk,true);
+  drawAuraAt(t,K,o.pos,sg,o.A*o.alpha,o.rk,true,auraGrow(t));
   swirlAt(t,K,o.pos,sg,o.A*.45*o.alpha,o.rk);
 }
 function trail(t,fn,rk){
@@ -1726,13 +1743,12 @@ function drawHero(t,S){
   const wind=.6+(inClash?2.2:0)+(t>T_SEP&&t<T_SEP+2?1.5*Math.exp(-(t-T_SEP)):0)+(t>T_LEAP&&t<T_CLASH?2:0);
   setLayer(1);
   trail(t,rivalPos,1); trail(t,heroPos,0);
-  drawAuraWar(t);
   const ra=rivalAlpha(t);
   if(ra>.01) drawFighter(t,{S:{K:S.RK,P:S.RP,glow:1},pos:RIVAL,mirror:true,pal:RIVAL_BODY,cv:RC,rim:[255,120,105],light:rl,open:false,wind,alpha:ra,A:rivalA(t),rk:1});
   drawRivalEyes(t,S.RK,RIVAL);
   drawFighter(t,{S:{K:S.K,P:S.P,glow:1},pos:HERO,mirror:false,pal:BODY,cv:HC,rim:[130,255,165],light:hl,open:inClash,wind,alpha:1,A:heroA(t),rk:0});
   drawClash(t);
-  drawWaves(t);
+  drawSeam(t);
 }
 
 
@@ -1777,6 +1793,19 @@ function tidePath(x0,x1,t,ph,scale){
   for(let i=8;i>=-8;i--){ const yy=lineY(x1)+i*22*scale; ctx.lineTo(x1+dir*(6+10*Math.sin(i*1.7+t*25+ph)),yy); }
   for(let i=bot.length-1;i>=0;i--) ctx.lineTo(bot[i][0],bot[i][1]);
   ctx.closePath();
+}
+
+function drawSeam(t){
+  const k=sstep(T_WAR,T_WAR+.12,t)*(1-sstep(T_WEND,T_WEND+.15,t)); if(k<.01) return;
+  const B=seamB(t), yc=lineY(B), y0=yc-420, y1=yc+380;
+  ctx.globalCompositeOperation='lighter'; ctx.lineJoin='round';
+  const line=(dx,col,w)=>{ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.beginPath(); for(let y=y0;y<=y1;y+=12) { const x=seamX(y,t)+dx; y===y0?ctx.moveTo(x,y):ctx.lineTo(x,y); } ctx.stroke(); };
+  line(-10,`rgba(${GREEN[1]},${.5*k})`,22); line(10,`rgba(${RED[1]},${.5*k})`,22);
+  line(-3,`rgba(${GREEN[3]},${.8*k})`,6); line(3,`rgba(${RED[3]},${.8*k})`,6);
+  line(0,`rgba(255,255,255,${.95*k})`,3);
+  const g=ctx.createRadialGradient(B,yc,0,B,yc,330); g.addColorStop(0,`rgba(255,255,240,${.45*k})`); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.fillRect(B-330,yc-330,660,660);
+  for(let i=0;i<6;i++){ const ya=R(y0,y1), yb=ya+R(-160,160); bolt(seamX(ya,t),ya,seamX(yb,t)+R(-60,60),yb,1.3,1,1,Math.random()<.5?1:0); }
+  ctx.globalCompositeOperation='source-over';
 }
 function drawAuraWar(t){
   const k=sstep(T_WAR-.3,T_WAR+.5,t)*(1-sstep(T_WEND,T_WEND+.6,t)); if(k<.01) return;
@@ -1833,10 +1862,16 @@ function scene2Update(t,dt,S){
       rings.push({x:DUELPT.x,y:DUELPT.y,t0:t+.04,dur:.55,maxR:big?950:560,w:big?50:28,col:'255,150,140'});
       burst(DUELPT,'170,255,190',big?140:70,big?1000:700); burst(DUELPT,'255,140,120',big?140:70,big?1000:700); }); });
   // aura war: sparks spray along the seam where the two auras meet
-  if(t>T_WAR&&t<T_WEND){ const B=warB(t), y0=lineY(B); const n=spawnN(200,dt);
-    for(let i=0;i<n;i++){ const yy=y0+R(-170,170), side=Math.random()<.5?-1:1, v=R(200,700); add({type:'spark',x:B,y:yy,vx:side*v,vy:R(-200,200),max:R(.2,.5),col:side<0?'160,255,185':'255,140,120'}); } }
-  once('war',T_WAR,()=>{ snd('surge'); });
-  once('wend',T_WEND,()=>{ snd('blast'); const B=warB(t), P={x:B,y:lineY(B)};
+  if(t>T_WAR&&t<T_WEND){ const B=seamB(t), y0=lineY(B); const n=spawnN(220,dt);
+    for(let i=0;i<n;i++){ const yy=y0+R(-330,300), side=Math.random()<.5?-1:1, v=R(200,700); add({type:'spark',x:seamX(yy,t),y:yy,vx:side*v,vy:R(-200,200),max:R(.2,.5),col:side<0?'160,255,185':'255,140,120'}); } }
+  once('war',T_WAR,()=>{ snd('impact'); const P={x:seamB(t),y:lineY(seamB(t))};
+    rings.push({x:P.x,y:P.y,t0:t,dur:1.5,maxR:2600,w:160,col:'200,255,210',big:1});
+    rings.push({x:P.x,y:P.y,t0:t+.06,dur:1.3,maxR:2200,w:130,col:'255,160,150',big:1});
+    burst(P,'170,255,190',180,1100); burst(P,'255,140,120',180,1100); });
+  // pulses as the auras swell
+  if(t>T_DUEL&&t<T_WAR){ const k=Math.floor((t-T_DUEL)/((T_WAR-T_DUEL)/4)); if(k!==ev.gp){ ev.gp=k; snd('pulse');
+    for(const [who,col] of [['h','150,255,180'],['r','255,130,120']]){ const c=chestOf(who); rings.push({x:c.x,y:c.y,t0:t,dur:.6,maxR:300+90*k,w:22,col}); } } }
+  once('wend',T_WEND,()=>{ snd('blast'); const B=seamB(t), P={x:B,y:lineY(B)};
     rings.push({x:P.x,y:P.y,t0:t,dur:1.7,maxR:2800,w:170,col:'230,255,235',big:1});
     rings.push({x:P.x,y:P.y,t0:t+.08,dur:1.4,maxR:2000,w:110,col:'255,160,150',big:1});
     burst(P,'170,255,190',200,1200); burst(P,'255,140,120',200,1200); });
@@ -1847,7 +1882,7 @@ function scene2Update(t,dt,S){
 }
 function scene2Wind(t){ return .3+(t>T_WAR&&t<T_WEND?1.5:0)+(t>T_DUEL&&t<T_WAR?.6:0)+(t>T_CLASH&&t<T_SEP?1.4:0)+(t>T_SEP?1.2*Math.exp(-(t-T_SEP)*.8):0)+(t>T_LEAP&&t<T_CLASH?1:0); }
 function scene2Speed(t){ if(t>T_LEAP&&t<T_CLASH) return .7*Math.sin(Math.PI*(t-T_LEAP)/(T_CLASH-T_LEAP)); if(t>T_SEP&&t<T_SEP+.4) return .5*(1-(t-T_SEP)/.4); return 0; }
-function scene2Flash(t){ let f=0; for(const [t0,str] of [[T_CLASH,1],[T_SEP,.9],[T_WEND,.9],...WAVES.map(w=>[w+WT,.25])]){ const e=t-t0; if(e>=0) f+=str*(e<.06?1:Math.exp(-(e-.06)*3.5)); } return f; }
+function scene2Flash(t){ let f=0; for(const [t0,str] of [[T_CLASH,1],[T_SEP,.9],[T_WEND,.9],[T_WAR,.7],...WAVES.map(w=>[w+WT,.25])]){ const e=t-t0; if(e>=0) f+=str*(e<.06?1:Math.exp(-(e-.06)*3.5)); } return f; }
 function scene2Rumble(t){ return (t>T_WAR&&t<T_WEND?.7:0)+(t>T_WEND?1.1*Math.exp(-(t-T_WEND)*.7):0)+(t>T_CLASH&&t<T_SEP?.6:0)+(t>T_SEP?1.1*Math.exp(-(t-T_SEP)*.7):0)+(t>T_EYES&&t<T_IGN?.15:0); }
 function shakeAmp(t){
   let a=0;
@@ -1860,10 +1895,12 @@ function shakeAmp(t){
   if(t>=T_LAND) a+=10*Math.exp(-(t-T_LAND)*5);
   for(const w of WAVES){ const e=t-w-WT; if(e>=0) a+=9*Math.exp(-e*6); }
   if(t>T_WAR&&t<T_WEND) a+=7;
+  if(t>=T_WAR) a+=26*Math.exp(-(t-T_WAR)*3);
+  if(t>T_DUEL&&t<T_WAR) a+=2+3*(t-T_DUEL)/(T_WAR-T_DUEL);
   if(t>=T_WEND) a+=34*Math.exp(-(t-T_WEND)*2.4);
   return reduceMotion?a*.2:a;
 }
-const PUNCH2=[[T_IGN,.07,0,0,.02],[T_FLARE,.08,0,0,-.02],[T_LEAP,.1,-10,0,.02],[T_CLASH,.32,0,-10,.05],[T_SEP,.28,0,-14,-.05],[T_LAND,.08,0,8,.02],[T_WAR,.12,0,0,.03],[T_WEND,.3,0,-12,-.05]];
+const PUNCH2=[[T_IGN,.07,0,0,.02],[T_FLARE,.08,0,0,-.02],[T_LEAP,.1,-10,0,.02],[T_CLASH,.32,0,-10,.05],[T_SEP,.28,0,-14,-.05],[T_LAND,.08,0,8,.02],[T_WAR,.26,0,-8,.04],[T_WEND,.3,0,-12,-.05]];
 WAVES.forEach((w,i)=>PUNCH2.push([w+WT,.07,0,-4,i%2?.02:-.02]));
 function camPunch(t){
   let z=0,x=0,y=0,r=0;
@@ -1886,7 +1923,7 @@ function blurAmount(t){
   return reduceMotion?0:m;
 }
 function impactFlash(t){
-  const evs=[[T_CLASH,1,'210,255,220',CLASH],[T_SEP,.9,'255,225,210',CLASH],[T_WEND,.95,'240,255,240',DUELPT],...WAVES.map(w=>[w+WT,.4,'220,255,225',DUELPT]),[T_IGN,.35,'255,120,110',HOME_R],[T_FLARE,.3,'150,255,180',HOME_H]];
+  const evs=[[T_CLASH,1,'210,255,220',CLASH],[T_SEP,.9,'255,225,210',CLASH],[T_WEND,.95,'240,255,240',DUELPT],[T_WAR,.8,'235,255,235',DUELPT],...WAVES.map(w=>[w+WT,.4,'220,255,225',DUELPT]),[T_IGN,.35,'255,120,110',HOME_R],[T_FLARE,.3,'150,255,180',HOME_H]];
   const k=reduceMotion?.3:1;
   ctx.globalCompositeOperation='lighter';
   for(const [t0,str,col,P] of evs){
