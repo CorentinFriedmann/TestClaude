@@ -327,9 +327,13 @@ function debrisPoly(sz){ const n=5+(Math.random()*3|0), pts=[]; for(let i=0;i<n;
 function spawnDebris(n, hot, spread){
   for(let i=0;i<n;i++){
     const a=R(Math.PI*.55,Math.PI*1.45)+(Math.random()<.25?R(-1.6,1.6):0);
-    const sp=R(90,spread);
-    const sz=Math.random()<.15?R(9,18):R(2.5,8);
-    add({type:'debris',x:IMP.x+R(-30,30),y:IMP.y+R(-30,30),vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-R(40,220),rot:R(0,6),vr:R(-8,8),max:R(3,5),size:sz,poly:debrisPoly(sz),hot:hot&&Math.random()<.5,shade:R(.7,1.15)});
+    const r=Math.random(), slab=r<.07;
+    const sz=slab?R(26,48):r<.3?R(12,24):R(4,11);
+    const sp=R(90,spread)*(slab?.55:sz>12?.8:1);
+    const d={type:'debris',x:IMP.x+R(-40,40),y:IMP.y+R(-40,40),vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-R(40,220),rot:R(0,6),vr:R(-8,8)*(slab?.25:sz>12?.5:1),max:R(3.5,5.5),size:sz,poly:debrisPoly(sz),hot:hot&&Math.random()<.5,shade:R(.7,1.15)};
+    if(sz>12){ d.rebar=[]; for(let j=0;j<(slab?4:2);j++){ const q=d.poly[Math.random()*d.poly.length|0]; d.rebar.push([q[0],q[1],q[0]*R(1.2,1.6)+R(-4,4),q[1]*R(1.2,1.6)+R(-4,4)]); } }
+    if(slab){ d.slab=1; d.wins=[]; for(let wx=-sz*.5;wx<sz*.4;wx+=11) for(let wy=-sz*.4;wy<sz*.3;wy+=13) if(Math.random()<.7) d.wins.push([wx,wy]); }
+    add(d);
   }
 }
 function spawnSparks(n, hot){
@@ -421,7 +425,9 @@ function update(dt){
       case 'aura': p.x+=p.vx*dt; p.y+=p.vy*dt; break;
       case 'pebble': p.x+=(p.vx+Math.sin(t*3+p.seed)*8)*dt; p.y+=p.vy*dt; p.vy*=.995; p.rot+=p.vr*dt; if(t>=FIRE){p.vy+=200*dt;} break;
       case 'dust': p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.99; break;
-      case 'debris': p.vy+=720*dt; p.vx*=.995; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt; break;
+      case 'debris': p.vy+=720*dt; p.vx*=p.size>12?.99:.995; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt;
+        if(p.size>12 && Math.random()<dt*(p.slab?40:18)) parts.push({type:'dust',x:p.x,y:p.y,px:p.x,py:p.y,vx:R(-20,20),vy:R(-30,0),life:0,max:R(.8,1.6),size:p.size*R(.25,.45)});
+        break;
       case 'glass': p.vy+=520*dt; p.vx*=.992; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt; break;
       case 'spark': p.vy+=320*dt; p.vx*=.97; p.vy*=.97; p.x+=p.vx*dt; p.y+=p.vy*dt; break;
       case 'smoke': p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.995; p.vy*=.998; break;
@@ -618,7 +624,17 @@ function drawSmokeAndDebris(t,S){
       const sh=p.shade||1;
       ctx.fillStyle = p.hot && p.life<1.6 ? `rgb(${150*sh|0},${70*sh|0},${40*sh|0})` : `rgb(${44*sh|0},${50*sh|0},${66*sh|0})`;
       ctx.beginPath(); p.poly.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = p.type==='pebble' ? `rgba(120,200,255,${.6*S.glow})` : 'rgba(150,180,240,.35)'; ctx.lineWidth=.8; ctx.stroke();
+      if(p.size>12){
+        ctx.save(); ctx.clip();
+        if(p.slab){ ctx.fillStyle=`rgb(${22*sh|0},${30*sh|0},${58*sh|0})`; ctx.fillRect(-p.size,-p.size,p.size*2,p.size*2); for(const w of p.wins){ ctx.fillStyle='rgba(8,10,18,.95)'; ctx.fillRect(w[0],w[1],8,9); ctx.strokeStyle='rgba(150,190,255,.35)'; ctx.lineWidth=.6; ctx.beginPath(); ctx.moveTo(w[0],w[1]+3); ctx.lineTo(w[0]+4,w[1]+6); ctx.stroke(); } }
+        ctx.fillStyle='rgba(0,0,8,.35)'; ctx.fillRect(-p.size,p.size*.15,p.size*2,p.size);
+        ctx.fillStyle='rgba(170,190,240,.12)'; ctx.fillRect(-p.size,-p.size,p.size*2,p.size*.45);
+        ctx.strokeStyle='rgba(0,0,10,.5)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-p.size*.6,-p.size*.1); ctx.lineTo(p.size*.1,p.size*.2); ctx.lineTo(p.size*.5,-p.size*.3); ctx.stroke();
+        ctx.restore();
+        ctx.strokeStyle='rgba(90,70,60,.95)'; ctx.lineWidth=p.slab?1.6:1.1; for(const rb of p.rebar){ ctx.beginPath(); ctx.moveTo(rb[0],rb[1]); ctx.lineTo(rb[2],rb[3]); ctx.stroke(); }
+      }
+      ctx.strokeStyle = p.type==='pebble' ? `rgba(120,200,255,${.6*S.glow})` : 'rgba(150,180,240,.35)'; ctx.lineWidth=.8;
+      ctx.beginPath(); p.poly.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])); ctx.closePath(); ctx.stroke();
       ctx.restore();
     } else if(p.type==='dust'){
       const k=p.life/p.max; ctx.fillStyle=`rgba(120,135,170,${.22*(1-k)})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(1+k*2),0,7); ctx.fill();
@@ -1069,7 +1085,7 @@ function drawAdditiveParticles(t,S){
       case 'glass': { const gl=.45+.55*Math.abs(Math.sin(p.rot*2+p.seed)); ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=`rgba(170,215,255,${gl*(1-k*.7)})`; ctx.beginPath(); ctx.moveTo(-p.size,-p.size*.4); ctx.lineTo(p.size,0); ctx.lineTo(-p.size*.2,p.size*.7); ctx.closePath(); ctx.fill(); ctx.restore(); break; }
       case 'fire': { const sz=p.size*(.5+k*1.3), a=Math.pow(1-k,1.5); const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz); g.addColorStop(0,`rgba(255,${235-90*k|0},${180-150*k|0},${.75*a})`); g.addColorStop(.45,`rgba(255,${120-50*k|0},30,${.45*a})`); g.addColorStop(1,'rgba(160,30,10,0)'); ctx.fillStyle=g; ctx.fillRect(p.x-sz,p.y-sz,sz*2,sz*2); break; }
       case 'ember': { const f=.6+.4*Math.sin(t*14+p.seed*5); ctx.fillStyle=`rgba(255,${150+60*f|0},70,${(1-k)*f})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,7); ctx.fill(); break; }
-      case 'debris': if(p.hot && p.life<1.6){ ctx.fillStyle=`rgba(255,120,40,${.35*(1-p.life/1.6)})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*1.6,0,7); ctx.fill(); } break;
+      case 'debris': if(p.hot && p.life<1.6){ ctx.fillStyle=`rgba(255,120,40,${.35*(1-p.life/1.6)})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.min(p.size,16)*1.6,0,7); ctx.fill(); } break;
     }
   }
   // shockwave rings
