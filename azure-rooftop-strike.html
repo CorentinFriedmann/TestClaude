@@ -374,7 +374,7 @@ function update(dt){
     rings.push({x:IMP.x,y:IMP.y,t0:t+.05,dur:1.2,maxR:1150,w:72,col:'255,200,150'});
     rings.push({x:IMP.x,y:IMP.y,t0:t+.25,dur:1.5,maxR:1700,w:58,col:'255,170,110',big:1});
     spawnDebris(210,true,980); spawnSparks(460,true); spawnSmoke(140,170,true);
-    for(let i=0;i<55;i++){const a=R(0,6.283),v=R(60,340);add({type:'fire',x:IMP.x+R(-30,30),y:IMP.y+R(-30,30),vx:Math.cos(a)*v-60,vy:Math.sin(a)*v-80,max:R(.9,1.9),size:R(40,95)});}
+    for(let i=0;i<120;i++){const a=R(0,6.283),v=R(80,520);add({type:'fire',x:IMP.x+R(-50,50),y:IMP.y+R(-50,50),vx:Math.cos(a)*v-70,vy:Math.sin(a)*v-120,max:R(1.2,2.8),size:R(70,170)});}
     for(let i=0;i<80;i++) add({type:'ember',x:IMP.x+R(-60,60),y:IMP.y+R(-60,60),vx:R(-120,60),vy:R(-160,-20),max:R(2,4),size:R(1,2.4),seed:R(0,6)}); }
   // continuous spawns
   if(t>CH+.05 && t<FIRE){
@@ -654,6 +654,30 @@ function ribbon(x,y,base,len,w0,t,ph,wind,col){
     px+=Math.cos(a)*len/n; py+=Math.sin(a)*len/n;
   }
   ctx.fillStyle=col; ctx.beginPath(); L.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); for(let i=Rr.length-1;i>=0;i--) ctx.lineTo(Rr[i][0],Rr[i][1]); ctx.closePath(); ctx.fill();
+}
+
+
+/* the fireball itself: a lumpy, rolling ball of flame that swells, rises and darkens into smoke */
+function fireballR(t){ const e=t-BEAM_END; return 150+780*(1-Math.exp(-e*2.6)); }
+function drawFireballBody(t){
+  const e=t-BEAM_END; if(e<0||e>3.4) return;
+  setLayer(1);
+  const fr=fireballR(t), fa=Math.exp(-e*1.05), rise=e*e*28;
+  const cx=IMP.x-e*30, cy=IMP.y-rise;
+  const N=14;
+  for(let i=0;i<N;i++){
+    const a=i/N*6.283+e*.7+Math.sin(i*3.1)*.4, d=fr*(.28+.18*Math.sin(i*1.7+e*2));
+    const x=cx+Math.cos(a)*d, y=cy+Math.sin(a)*d*.8, r=fr*(.36+.1*Math.sin(i*2.3+e*3));
+    const cool=clamp(e/2.6+(d/fr)*.3,0,1);
+    const g=ctx.createRadialGradient(x,y-r*.15,0,x,y,r);
+    g.addColorStop(0,`rgba(255,${200-110*cool|0},${90-70*cool|0},${.75*fa})`);
+    g.addColorStop(.55,`rgba(${230-120*cool|0},${90-50*cool|0},${30},${.55*fa})`);
+    g.addColorStop(1,`rgba(${60-20*cool|0},${30},${30},0)`);
+    ctx.fillStyle=g; ctx.fillRect(x-r,y-r,r*2,r*2);
+  }
+  const c=ctx.createRadialGradient(cx,cy,0,cx,cy,fr*.5);
+  c.addColorStop(0,`rgba(255,250,225,${.9*Math.exp(-e*2.2)})`); c.addColorStop(.5,`rgba(255,190,90,${.6*Math.exp(-e*1.6)})`); c.addColorStop(1,'rgba(255,120,40,0)');
+  ctx.fillStyle=c; ctx.fillRect(cx-fr*.5,cy-fr*.5,fr,fr);
 }
 
 /* city set dressing drawn live */
@@ -997,8 +1021,8 @@ function drawGlowOverlays(t,S){
     ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=440; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
     if(t>IMPACT) rad(IMP.x,IMP.y,900,'90,160,255',.75*k);
   }
-  if(t>BEAM_END && t<BEAM_END+2.4){ const e=t-BEAM_END, fr=90+430*(1-Math.exp(-e*3)), fa=Math.exp(-e*1.5);
-    rad(IMP.x,IMP.y,fr*1.6,'255,110,40',.55*fa); rad(IMP.x,IMP.y,fr,'255,190,110',.8*fa); rad(IMP.x,IMP.y,fr*.45,'255,250,235',.95*Math.exp(-e*3)); }
+  if(t>BEAM_END && t<BEAM_END+3.4){ const e=t-BEAM_END, fr=fireballR(t), fa=Math.exp(-e*1.1);
+    rad(IMP.x,IMP.y,fr*1.8,'255,100,30',.32*fa); rad(IMP.x,IMP.y,fr*.8,'255,170,80',.28*fa); rad(IMP.x,IMP.y,fr*.3,'255,250,235',.7*Math.exp(-e*3.5)); }
   if(t>BEAM_END){ const k=Math.exp(-(t-BEAM_END)*.45); rad(IMP.x,IMP.y+20,380,'255,120,50',.35*k*(0.85+0.15*Math.sin(t*11))); }
   ctx.globalCompositeOperation='source-over';
 }
@@ -1083,7 +1107,7 @@ function drawAdditiveParticles(t,S){
       case 'aura': ctx.fillStyle=`rgba(70,150,255,${.3*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.5*(1-k*.5),p.size*(1.8+k*2.6),0,0,7); ctx.fill(); ctx.fillStyle=`rgba(200,240,255,${.35*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.15,p.size*(1+k*1.6),0,0,7); ctx.fill(); break;
       case 'spark': { const hot=p.hot; ctx.strokeStyle= hot?`rgba(255,${190-120*k|0},90,${1-k})`:`rgba(${200-60*k|0},${235-30*k|0},255,${1-k})`; ctx.lineWidth=p.thin?1:1.6; const vx=p.x-p.px, vy=p.y-p.py; ctx.beginPath(); ctx.moveTo(p.x-vx*2.5,p.y-vy*2.5); ctx.lineTo(p.x,p.y); ctx.stroke(); break; }
       case 'glass': { const gl=.45+.55*Math.abs(Math.sin(p.rot*2+p.seed)); ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=`rgba(170,215,255,${gl*(1-k*.7)})`; ctx.beginPath(); ctx.moveTo(-p.size,-p.size*.4); ctx.lineTo(p.size,0); ctx.lineTo(-p.size*.2,p.size*.7); ctx.closePath(); ctx.fill(); ctx.restore(); break; }
-      case 'fire': { const sz=p.size*(.5+k*1.3), a=Math.pow(1-k,1.5); const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz); g.addColorStop(0,`rgba(255,${235-90*k|0},${180-150*k|0},${.75*a})`); g.addColorStop(.45,`rgba(255,${120-50*k|0},30,${.45*a})`); g.addColorStop(1,'rgba(160,30,10,0)'); ctx.fillStyle=g; ctx.fillRect(p.x-sz,p.y-sz,sz*2,sz*2); break; }
+      case 'fire': { const sz=p.size*(.5+k*1.3), a=Math.pow(1-k,1.5); const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz); g.addColorStop(0,`rgba(255,${210-90*k|0},${120-100*k|0},${.42*a})`); g.addColorStop(.45,`rgba(240,${100-50*k|0},25,${.26*a})`); g.addColorStop(1,'rgba(160,30,10,0)'); ctx.fillStyle=g; ctx.fillRect(p.x-sz,p.y-sz,sz*2,sz*2); break; }
       case 'ember': { const f=.6+.4*Math.sin(t*14+p.seed*5); ctx.fillStyle=`rgba(255,${150+60*f|0},70,${(1-k)*f})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,7); ctx.fill(); break; }
       case 'debris': if(p.hot && p.life<1.6){ ctx.fillStyle=`rgba(255,120,40,${.35*(1-p.life/1.6)})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.min(p.size,16)*1.6,0,7); ctx.fill(); } break;
     }
@@ -1170,6 +1194,7 @@ function render(){
   drawNear(t,S);
   drawSmokeAndDebris(t,S);
   drawHero(t,S);
+  drawFireballBody(t);
   drawGlowOverlays(t,S);
   drawBeam(t,S);
   drawSphere(t,S);
