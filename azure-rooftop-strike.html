@@ -242,14 +242,14 @@ function shakeAmp(t){
   let a=0; const c=chargeAt(t);
   if(t>3&&t<FIRE) a+=c*c*3;
   if(t>=FIRE) a+=11*Math.exp(-(t-FIRE)*6);
-  if(t>=IMPACT) a+=22*Math.exp(-(t-IMPACT)*3.2);
+  if(t>=IMPACT) a+=26*Math.exp(-(t-IMPACT)*3.2);
   if(t>=IMPACT&&t<BEAM_END) a+=4.5;
-  if(t>=BEAM_END) a+=17*Math.exp(-(t-BEAM_END)*2.4);
+  if(t>=BEAM_END) a+=30*Math.exp(-(t-BEAM_END)*2.1);
   return reduceMotion? a*.2 : a;
 }
 
 /* ---------- state ---------- */
-function craterR(t){ if(t<IMPACT) return 0; let r=72*(1-Math.exp(-(t-IMPACT)*1.6)); if(t>BEAM_END) r+=22*(1-Math.exp(-(t-BEAM_END)*4)); return r; }
+function craterR(t){ if(t<IMPACT) return 0; let r=84*(1-Math.exp(-(t-IMPACT)*1.6)); if(t>BEAM_END) r+=34*(1-Math.exp(-(t-BEAM_END)*4)); return r; }
 function computeState(t){
   const P=poseAt(t), K=skel(P), c=chargeAt(t);
   const hm={x:HERO.x+(K.hN[0]+K.hF[0])/2, y:HERO.y+(K.hN[1]+K.hF[1])/2};
@@ -295,7 +295,7 @@ function spawnSparks(n, hot){
 function spawnSmoke(n, spread, big){
   for(let i=0;i<n;i++){
     const a=R(0,6.283), r=R(0,spread);
-    add({type:'smoke',x:IMP.x+Math.cos(a)*r-R(0,20),y:IMP.y+Math.sin(a)*r,vx:R(-50,-8)+(big?R(-80,40):0),vy:R(-38,-6),max:R(4.5,8),s0:R(18,34),s1:R(90,big?220:170),seed:R(0,6)});
+    add({type:'smoke',x:IMP.x+Math.cos(a)*r-R(0,20),y:IMP.y+Math.sin(a)*r,vx:R(-50,-8)+(big?R(-80,40):0),vy:R(-38,-6),max:R(4.5,8),s0:R(18,34),s1:R(90,big?330:170),seed:R(0,6)});
   }
 }
 function update(dt){
@@ -306,16 +306,18 @@ function update(dt){
     for(let i=0;i<40;i++){const a=R(0,6.283),v=R(120,420);add({type:'spark',x:S.sp.x,y:S.sp.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,max:R(.2,.45)});}
     for(const p of parts) if(p.type==='pebble'){p.vx-=R(180,380);p.vy-=R(40,140);} }
   if(!ev.impact && t>=IMPACT){ ev.impact=1; snd('impact');
-    rings.push({x:IMP.x,y:IMP.y,t0:t,dur:.95,maxR:780,w:46,col:'170,220,255'});
-    rings.push({x:IMP.x,y:IMP.y,t0:t+.08,dur:.6,maxR:320,w:20,col:'255,255,255'});
-    spawnDebris(70,false,520); spawnSparks(240,false); spawnSmoke(26,40,false); }
+    rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.05,maxR:1100,w:70,col:'170,220,255'});
+    rings.push({x:IMP.x,y:IMP.y,t0:t+.08,dur:.7,maxR:480,w:30,col:'255,255,255'});
+    spawnDebris(120,false,700); spawnSparks(380,false); spawnSmoke(45,60,false); }
   if(!ev.wave && t>=IMPACT+.62){ ev.wave=1;
     for(let i=0;i<40;i++) add({type:'dust',x:HERO.x+R(-140,140),y:HERO.y-R(0,6),vx:R(-260,-80),vy:R(-60,-10),max:R(1,2),size:R(3,8)}); }
   if(!ev.blast && t>=BEAM_END+.02){ ev.blast=1; snd('blast');
-    rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.25,maxR:1150,w:60,col:'200,230,255'});
-    rings.push({x:IMP.x,y:IMP.y,t0:t+.05,dur:.8,maxR:420,w:26,col:'255,200,150'});
-    spawnDebris(110,true,700); spawnSparks(260,true); spawnSmoke(46,70,true);
-    for(let i=0;i<30;i++) add({type:'ember',x:IMP.x+R(-60,60),y:IMP.y+R(-60,60),vx:R(-120,60),vy:R(-160,-20),max:R(2,4),size:R(1,2.4),seed:R(0,6)}); }
+    rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.5,maxR:1700,w:95,col:'200,230,255'});
+    rings.push({x:IMP.x,y:IMP.y,t0:t+.05,dur:1,maxR:650,w:40,col:'255,200,150'});
+    rings.push({x:IMP.x,y:IMP.y,t0:t+.25,dur:1.2,maxR:950,w:30,col:'255,170,110'});
+    spawnDebris(210,true,980); spawnSparks(460,true); spawnSmoke(85,120,true);
+    for(let i=0;i<55;i++){const a=R(0,6.283),v=R(60,340);add({type:'fire',x:IMP.x+R(-30,30),y:IMP.y+R(-30,30),vx:Math.cos(a)*v-60,vy:Math.sin(a)*v-80,max:R(.9,1.9),size:R(40,95)});}
+    for(let i=0;i<80;i++) add({type:'ember',x:IMP.x+R(-60,60),y:IMP.y+R(-60,60),vx:R(-120,60),vy:R(-160,-20),max:R(2,4),size:R(1,2.4),seed:R(0,6)}); }
   // continuous spawns
   if(t>3.05 && t<FIRE){
     const n=spawnN(70+260*S.c,dt);
@@ -344,7 +346,7 @@ function update(dt){
     if(Math.random()<dt*3*k) spawnDebris(1,false,120);
   }
   // windows shatter wave
-  const rC = t<IMPACT?0 : t<BEAM_END ? Math.min(250,(t-IMPACT)*330) : 250+Math.min(100,(t-BEAM_END)*450);
+  const rC = t<IMPACT?0 : t<BEAM_END ? Math.min(290,(t-IMPACT)*380) : 290+Math.min(170,(t-BEAM_END)*550);
   for(const w of TW){
     if(w.broken<0 && w.d<rC){ w.broken=t; snd('glass');
       if(w.d>S.cr*.9){ const n=3+(Math.random()*3|0); for(let i=0;i<n;i++){ const dx=w.x+w.w/2-IMP.x, dy=w.y+w.h/2-IMP.y, dl=Math.hypot(dx,dy)||1, v=R(80,280);
@@ -369,6 +371,7 @@ function update(dt){
       case 'glass': p.vy+=520*dt; p.vx*=.992; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.vr*dt; break;
       case 'spark': p.vy+=320*dt; p.vx*=.97; p.vy*=.97; p.x+=p.vx*dt; p.y+=p.vy*dt; break;
       case 'smoke': p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.995; p.vy*=.998; break;
+      case 'fire': p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.96; p.vy=p.vy*.96-30*dt; break;
       case 'ember': p.x+=(p.vx+Math.sin(t*4+p.seed)*20)*dt; p.y+=p.vy*dt; break;
     }
   }
@@ -645,6 +648,8 @@ function drawGlowOverlays(t,S){
     ctx.lineCap='round'; ctx.strokeStyle=`rgba(40,110,255,${.1*k})`; ctx.lineWidth=440; ctx.beginPath(); ctx.moveTo(b.o.x,b.o.y); ctx.lineTo(b.o.x+Math.cos(b.ang)*b.len,b.o.y+Math.sin(b.ang)*b.len); ctx.stroke();
     if(t>IMPACT) rad(IMP.x,IMP.y,900,'90,160,255',.75*k);
   }
+  if(t>BEAM_END && t<BEAM_END+2.4){ const e=t-BEAM_END, fr=90+430*(1-Math.exp(-e*3)), fa=Math.exp(-e*1.5);
+    rad(IMP.x,IMP.y,fr*1.6,'255,110,40',.55*fa); rad(IMP.x,IMP.y,fr,'255,190,110',.8*fa); rad(IMP.x,IMP.y,fr*.45,'255,250,235',.95*Math.exp(-e*3)); }
   if(t>BEAM_END){ const k=Math.exp(-(t-BEAM_END)*.45); rad(IMP.x,IMP.y+20,380,'255,120,50',.35*k*(0.85+0.15*Math.sin(t*11))); }
   ctx.globalCompositeOperation='source-over';
 }
@@ -729,6 +734,7 @@ function drawAdditiveParticles(t,S){
       case 'aura': ctx.fillStyle=`rgba(70,150,255,${.32*(1-k)})`; ctx.beginPath(); ctx.ellipse(p.x,p.y,p.size*.5,p.size*(1.6+k*2),0,0,7); ctx.fill(); break;
       case 'spark': { const hot=p.hot; ctx.strokeStyle= hot?`rgba(255,${190-120*k|0},90,${1-k})`:`rgba(${200-60*k|0},${235-30*k|0},255,${1-k})`; ctx.lineWidth=p.thin?1:1.6; const vx=p.x-p.px, vy=p.y-p.py; ctx.beginPath(); ctx.moveTo(p.x-vx*2.5,p.y-vy*2.5); ctx.lineTo(p.x,p.y); ctx.stroke(); break; }
       case 'glass': { const gl=.45+.55*Math.abs(Math.sin(p.rot*2+p.seed)); ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=`rgba(170,215,255,${gl*(1-k*.7)})`; ctx.beginPath(); ctx.moveTo(-p.size,-p.size*.4); ctx.lineTo(p.size,0); ctx.lineTo(-p.size*.2,p.size*.7); ctx.closePath(); ctx.fill(); ctx.restore(); break; }
+      case 'fire': { const sz=p.size*(.5+k*1.3), a=Math.pow(1-k,1.5); const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz); g.addColorStop(0,`rgba(255,${235-90*k|0},${180-150*k|0},${.75*a})`); g.addColorStop(.45,`rgba(255,${120-50*k|0},30,${.45*a})`); g.addColorStop(1,'rgba(160,30,10,0)'); ctx.fillStyle=g; ctx.fillRect(p.x-sz,p.y-sz,sz*2,sz*2); break; }
       case 'ember': { const f=.6+.4*Math.sin(t*14+p.seed*5); ctx.fillStyle=`rgba(255,${150+60*f|0},70,${(1-k)*f})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,7); ctx.fill(); break; }
       case 'debris': if(p.hot && p.life<1.6){ ctx.fillStyle=`rgba(255,120,40,${.35*(1-p.life/1.6)})`; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*1.6,0,7); ctx.fill(); } break;
     }
@@ -769,7 +775,7 @@ function drawScreenFX(t,S,dt){
   let fl=0;
   if(t>=FIRE) fl+=.35*Math.exp(-(t-FIRE)*10);
   if(t>=IMPACT) fl+=.9*Math.exp(-(t-IMPACT)*5);
-  if(t>=BEAM_END) fl+=.6*Math.exp(-(t-BEAM_END)*4);
+  if(t>=BEAM_END) fl+=.9*Math.exp(-(t-BEAM_END)*3);
   if(reduceMotion) fl*=.3;
   if(fl>.003){ ctx.fillStyle=`rgba(215,235,255,${Math.min(.95,fl)})`; ctx.fillRect(0,0,W,H); }
   // vignette
@@ -872,7 +878,7 @@ function snd(name){
   if(!AC||!soundOn||!audioLive||!playing) return;
   if(name==='fire'){ whoosh(.45,.7); boom(180,45,.9,.8,.6,4000); }
   else if(name==='impact'){ boom(110,28,2.6,1.2,1.1,6000); whoosh(.6,.5); for(let i=0;i<6;i++) setTimeout(ping,i*35); }
-  else if(name==='blast'){ boom(90,22,3.6,1.3,1.3,5000); }
+  else if(name==='blast'){ boom(85,20,4.8,1.6,1.5,6000); whoosh(.8,.6); setTimeout(()=>{ if(soundOn&&playing) boom(60,18,3.5,1,1,2500); },260); for(let i=0;i<10;i++) setTimeout(ping,80+i*45); }
   else if(name==='glass'){ const now=performance.now(); if(now-lastPing>18){ lastPing=now; ping(); } }
 }
 
