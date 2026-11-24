@@ -56,7 +56,7 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
       <div class="eyebrow">Scene 01 · Night · Rooftop, 41st floor</div>
       <h1>Azure <span>Rooftop</span> Strike</h1>
     </div>
-    <div class="tc" id="tc"><b>00:00.00</b> / 00:15.50</div>
+    <div class="tc" id="tc"><b>00:00.00</b> / 00:26.00</div>
   </header>
 
   <div class="screen"><canvas id="c" aria-label="Animated anime-style scene: a martial artist charges a blue energy sphere on a rooftop and fires a beam into a nearby skyscraper"></canvas></div>
@@ -72,12 +72,12 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
     </div>
   </div>
 
-  <div class="track" id="track" role="slider" aria-label="Scene timeline" tabindex="0" aria-valuemin="0" aria-valuemax="15.5" aria-valuenow="0">
-    <div class="beat" style="flex:2.6"><span class="n">00.0</span><span class="l">Stillness</span></div>
-    <div class="beat" style="flex:4.45"><span class="n">02.6</span><span class="l">Gathering</span></div>
-    <div class="beat" style="flex:0.75"><span class="n">07.0</span><span class="l">Fire</span></div>
-    <div class="beat" style="flex:2.5"><span class="n">07.5</span><span class="l">Impact</span></div>
-    <div class="beat" style="flex:5.2"><span class="n">10.0</span><span class="l">Aftermath</span></div>
+  <div class="track" id="track" role="slider" aria-label="Scene timeline" tabindex="0" aria-valuemin="0" aria-valuemax="26" aria-valuenow="0">
+    <div class="beat" style="flex:5.6"><span class="n">00.0</span><span class="l">Stillness</span></div>
+    <div class="beat" style="flex:6.8"><span class="n">05.6</span><span class="l">Gathering</span></div>
+    <div class="beat" style="flex:2.2"><span class="n">12.4</span><span class="l">Fire &amp; impact</span></div>
+    <div class="beat" style="flex:1.8"><span class="n">14.6</span><span class="l">Surge</span></div>
+    <div class="beat" style="flex:9.6"><span class="n">16.4</span><span class="l">Aftermath</span></div>
     <div class="head" id="head"></div>
   </div>
 
@@ -86,8 +86,8 @@ button[aria-pressed="true"]{background:var(--accent);color:#04101c;border-color:
 
 <script>
 (() => {
-const W = 1600, H = 900, DUR = 15.5;
-const FIRE = 7.05, BEAM_START = 7.12, IMPACT = 7.5, BEAM_END = 9.6;
+const W = 1600, H = 900, DUR = 26;
+const IDLE_END = 5.6, CH = 6.0, FIRE = 12.4, BEAM_START = 12.47, IMPACT = 12.85, SURGE = 14.6, BEAM_END = 16.4, TITLE = 23.2;
 const HERO = { x: 420, y: 620 };
 const IMP = { x: 1196, y: 404 };
 const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -220,23 +220,23 @@ const POSES={
 function mixPose(a,b,k){const o={};for(const key in a)o[key]=lerp(a[key],b[key],k);return o}
 function poseAt(t){
   let P;
-  if(t<2.6) P=POSES.idle;
-  else if(t<3.3) P=mixPose(POSES.idle,POSES.charge,ease((t-2.6)/.7));
+  if(t<IDLE_END) P=POSES.idle;
+  else if(t<IDLE_END+.7) P=mixPose(POSES.idle,POSES.charge,ease((t-IDLE_END)/.7));
   else if(t<FIRE) P=POSES.charge;
   else if(t<FIRE+.12) P=mixPose(POSES.charge,POSES.thrust,ease((t-FIRE)/.12));
   else if(t<BEAM_END) P=POSES.thrust;
   else if(t<BEAM_END+1.8) P=mixPose(POSES.thrust,POSES.rest,ease((t-BEAM_END)/1.8));
   else P=POSES.rest;
   P={...P};
-  const breathe = t<2.6||t>BEAM_END+1 ? Math.sin(t*2.2)*.018 : 0;
+  const breathe = t<IDLE_END||t>BEAM_END+1 ? Math.sin(t*2.2)*.018 : 0;
   P.lean+=breathe;
   const c=chargeAt(t);
-  const trem = (t>3&&t<FIRE? c*c*.05 : 0) + (t>BEAM_START&&t<BEAM_END? .03:0);
+  const trem = (t>CH&&t<FIRE? c*c*.05 : 0) + (t>SURGE&&t<SURGE+.4? .06:0) + (t>BEAM_START&&t<BEAM_END? .03:0);
   if(trem){ const j=Math.sin(t*71)*trem, k=Math.sin(t*53+2)*trem; P.uN+=j; P.fN+=k; P.uF+=k; P.fF+=j; P.lean+=j*.3; }
   if(t>BEAM_END+1.4) { P.lean += Math.sin((t-BEAM_END)*3.5)*.03*Math.max(0,1-(t-BEAM_END-1.4)/3); }
   return P;
 }
-function chargeAt(t){ if(t<3) return 0; if(t>=FIRE) return 1; return Math.pow(clamp((t-3)/3.8,0,1),1.5); }
+function chargeAt(t){ if(t<CH) return 0; if(t>=FIRE) return 1; const u=clamp((t-CH)/(FIRE-CH-.25),0,1); return clamp(Math.pow(u,1.4)+.05*Math.sin(u*Math.PI*4.5)*u,0,1); }
 const dirA=a=>[Math.sin(a),Math.cos(a)];
 function skel(P){
   const th=26, sh=26, to=36, ua=20, fa=19;
@@ -257,29 +257,37 @@ function skel(P){
 
 /* ---------- camera ---------- */
 const CAM=[
-  [0.0, 1270,300,1.12, 0],
-  [2.5, 560,505,1.6, 0.0],
-  [3.4, 440,556,2.7,-0.035],
-  [6.8, 424,560,3.5,-0.055],
-  [7.05,432,556,3.85,-0.05],
-  [7.45,770,462,1.22,0.0],
-  [9.6, 830,440,1.34,0.0],
-  [10.7,1150,412,1.95,0.025],
-  [12.6,1110,420,1.78,0.012],
-  [14.3,720,470,1.12,0],
-  [15.5,700,472,1.1,0]];
+  [0.0, 1700,250,1.15, 0],
+  [2.8, 1260,300,1.12, 0],
+  [5.0, 560,505,1.6, 0.0],
+  [6.0, 440,556,2.7,-0.035],
+  [8.6, 470,540,2.2, 0.03],
+  [11.0,430,556,3.2,-0.05],
+  [12.15,424,560,3.6,-0.055],
+  [12.4,432,556,3.9,-0.05],
+  [12.8,770,462,1.22,0.0],
+  [14.5,815,446,1.3, 0.0],
+  [15.1,860,440,1.45,0.0],
+  [16.4,840,440,1.34,0.0],
+  [17.6,1150,412,1.95,0.025],
+  [19.8,1110,420,1.78,0.012],
+  [21.6,560,520,2.0,-0.01],
+  [23.2,520,530,1.8, 0],
+  [25.0,720,470,1.12,0],
+  [26.0,700,472,1.1, 0]];
 function camAt(t){
   const k=CAM; let i=0; while(i<k.length-2 && t>k[i+1][0]) i++;
   const a=k[Math.max(0,i-1)], b=k[i], c=k[i+1], d=k[Math.min(k.length-1,i+2)];
   let u=clamp((t-b[0])/(c[0]-b[0]),0,1);
-  const whip = b[0]===7.05;
+  const whip = b[0]===FIRE;
   if(whip) u=ease(u);
   const cr=(j)=> whip ? lerp(b[j],c[j],u) : 0.5*((2*b[j])+(-a[j]+c[j])*u+(2*a[j]-5*b[j]+4*c[j]-d[j])*u*u+(-a[j]+3*b[j]-3*c[j]+d[j])*u*u*u);
   return {x:cr(1)+Math.sin(t*.7)*4, y:cr(2)+Math.sin(t*.9+1)*3, z:Math.max(1.05,cr(3)), r:cr(4)};
 }
 function shakeAmp(t){
   let a=0; const c=chargeAt(t);
-  if(t>3&&t<FIRE) a+=c*c*3;
+  if(t>CH&&t<FIRE) a+=c*c*3;
+  if(t>=SURGE) a+=14*Math.exp(-(t-SURGE)*4);
   if(t>=FIRE) a+=11*Math.exp(-(t-FIRE)*6);
   if(t>=IMPACT) a+=26*Math.exp(-(t-IMPACT)*3.2);
   if(t>=IMPACT&&t<BEAM_END) a+=4.5;
@@ -295,13 +303,13 @@ function computeState(t){
   const fd=dirA(P.fN);
   const sp={x:hm.x+fd[0]*7, y:hm.y+fd[1]*7};
   let sr=0;
-  if(t<FIRE) sr = t>3.05 ? 3+15*c : 0; else sr=Math.max(0,18*(1-(t-FIRE)/.12));
+  if(t<FIRE) sr = t>CH+.05 ? 3+15*c : 0; else sr=Math.max(0,18*(1-(t-FIRE)/.12));
   let beam=null;
   if(t>=BEAM_START && t<BEAM_END+.5){
     const full=Math.hypot(IMP.x-sp.x,IMP.y-sp.y), ang=Math.atan2(IMP.y-sp.y,IMP.x-sp.x);
     const prog=ease(clamp((t-BEAM_START)/(IMPACT-BEAM_START),0,1));
     const tail=sstep(BEAM_END,BEAM_END+.45,t);
-    const w=54*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
+    const w=54*(1+.35*sstep(SURGE,SURGE+.25,t))*sstep(BEAM_START,BEAM_START+.07,t)*(1-tail*.85)*(1+.06*Math.sin(t*60));
     const o={x:sp.x+Math.cos(ang)*full*tail, y:sp.y+Math.sin(ang)*full*tail};
     beam={o, ang, len:Math.max(0,full*prog-full*tail), full, w, tail, prog};
   }
@@ -344,6 +352,13 @@ function update(dt){
   if(!ev.fire && t>=FIRE){ ev.fire=1; snd('fire'); rings.push({x:S.sp.x,y:S.sp.y,t0:t,dur:.4,maxR:190,w:14,col:'190,230,255'});
     for(let i=0;i<40;i++){const a=R(0,6.283),v=R(120,420);add({type:'spark',x:S.sp.x,y:S.sp.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,max:R(.2,.45)});}
     for(const p of parts) if(p.type==='pebble'){p.vx-=R(180,380);p.vy-=R(40,140);} }
+  { const k=Math.floor((t-CH)/1.5); if(t>CH+1 && t<FIRE-.4 && k!==ev.pulse && ev.pulse!==undefined){ snd('pulse'); rings.push({x:S.sp.x,y:S.sp.y,t0:t,dur:.5,maxR:90+120*S.c,w:8,col:'170,220,255'});
+      for(let i=0;i<24;i++){const a=R(0,6.283),v=R(80,220);add({type:'dust',x:HERO.x+Math.cos(a)*30,y:HERO.y-R(0,4),vx:Math.cos(a)*v,vy:-R(5,40),max:R(.6,1.2),size:R(2,5)});} }
+    ev.pulse=k; }
+  if(!ev.surge && t>=SURGE){ ev.surge=1; snd('surge');
+    rings.push({x:IMP.x,y:IMP.y,t0:t,dur:.8,maxR:700,w:50,col:'190,235,255'});
+    rings.push({x:S.sp.x,y:S.sp.y,t0:t,dur:.45,maxR:220,w:16,col:'210,240,255'});
+    spawnDebris(90,false,650); spawnSparks(260,false); spawnSmoke(30,60,false); }
   if(!ev.impact && t>=IMPACT){ ev.impact=1; snd('impact');
     rings.push({x:IMP.x,y:IMP.y,t0:t,dur:1.05,maxR:1100,w:70,col:'170,220,255'});
     rings.push({x:IMP.x,y:IMP.y,t0:t+.08,dur:.7,maxR:480,w:30,col:'255,255,255'});
@@ -358,7 +373,7 @@ function update(dt){
     for(let i=0;i<55;i++){const a=R(0,6.283),v=R(60,340);add({type:'fire',x:IMP.x+R(-30,30),y:IMP.y+R(-30,30),vx:Math.cos(a)*v-60,vy:Math.sin(a)*v-80,max:R(.9,1.9),size:R(40,95)});}
     for(let i=0;i<80;i++) add({type:'ember',x:IMP.x+R(-60,60),y:IMP.y+R(-60,60),vx:R(-120,60),vy:R(-160,-20),max:R(2,4),size:R(1,2.4),seed:R(0,6)}); }
   // continuous spawns
-  if(t>3.05 && t<FIRE){
+  if(t>CH+.05 && t<FIRE){
     const n=spawnN(70+260*S.c,dt);
     for(let i=0;i<n;i++) add({type:'charge',ang:R(0,6.283),rad:R(70,190)*(.55+.45*S.c),dir:Math.random()<.8?1:-1,max:3,x:S.sp.x,y:S.sp.y,w:R(.8,2)});
     const m=spawnN(10+18*S.c,dt);
@@ -875,7 +890,7 @@ function drawHero(t,S){
   let lx=.55, ly=-.83;
   if(S.glow>0){ const dx=S.sp.x-HERO.x-cx, dy=S.sp.y-HERO.y-cy, d=Math.hypot(dx,dy)||1; lx=lerp(lx,dx/d,S.glow); ly=lerp(ly,dy/d,S.glow); }
   const dl=Math.hypot(lx,ly)||1; lx/=dl; ly/=dl;
-  const g=S.glow, open = t>2.9 && t<BEAM_END+.9;
+  const g=S.glow, open = t>IDLE_END+.3 && t<BEAM_END+.9;
   const rimCol=`rgb(${lerp(120,190,g)|0},${lerp(140,240,g)|0},${lerp(200,255,g)|0})`;
   const off=.9+g*.6;
   // contact shadow on the roof
@@ -1024,7 +1039,8 @@ function drawScreenFX(t,S,dt){
   }
   // radial speed lines at release
   let sl=0;
-  if(t>6.3&&t<FIRE) sl=.25*sstep(6.3,7,t);
+  if(t>FIRE-.75&&t<FIRE) sl=.25*sstep(FIRE-.75,FIRE-.05,t);
+  if(t>=SURGE&&t<SURGE+.35) sl=Math.max(sl,.5*(1-(t-SURGE)/.35));
   if(t>=FIRE&&t<FIRE+.42) sl=.75*(1-(t-FIRE)/.42);
   if(sl>0 && !reduceMotion){
     const cx=W/2, cy=H/2; ctx.fillStyle=`rgba(230,245,255,${sl})`;
@@ -1039,12 +1055,20 @@ function drawScreenFX(t,S,dt){
   if(t>=FIRE) fl+=.35*Math.exp(-(t-FIRE)*10);
   if(t>=IMPACT) fl+=.9*Math.exp(-(t-IMPACT)*5);
   if(t>=BEAM_END) fl+=.9*Math.exp(-(t-BEAM_END)*3);
+  if(t>=SURGE) fl+=.4*Math.exp(-(t-SURGE)*7);
   if(reduceMotion) fl*=.3;
   if(fl>.003){ ctx.fillStyle=`rgba(215,235,255,${Math.min(.95,fl)})`; ctx.fillRect(0,0,W,H); }
   // vignette
   const v=ctx.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*1.05);
   v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,8,.75)');
   ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
+  // closing title card
+  if(t>TITLE){ const a=sstep(TITLE,TITLE+1,t)*(1-sstep(DUR-1,DUR-.3,t));
+    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=`rgba(225,236,255,${a})`; ctx.font='64px Anton, Impact, sans-serif'; ctx.fillText('AZURE ROOFTOP STRIKE',W/2,H-140);
+    ctx.fillStyle=`rgba(98,200,255,${a})`; ctx.fillRect(W/2-120,H-122,240,2);
+    ctx.fillStyle=`rgba(160,175,215,${a})`; ctx.font='600 16px "JetBrains Mono", monospace'; ctx.fillText('SCENE 01  ·  NIGHT  ·  ROOFTOP, 41ST FLOOR',W/2,H-94);
+    ctx.restore(); }
   // fades
   const fade = Math.max(1-sstep(0,.9,t), sstep(DUR-.8,DUR,t));
   if(fade>0){ ctx.fillStyle=`rgba(0,0,0,${fade})`; ctx.fillRect(0,0,W,H); }
@@ -1104,7 +1128,7 @@ function audioLevels(t){
   const beam=S.beam? (1-S.beam.tail)*clamp(S.beam.w/54,0,1) : 0;
   lvl(BUS.wind.g.gain,(.05+.16*c*(t<FIRE?1:0)+.18*beam)*live);
   lvl(BUS.wind.f.frequency,500+900*c+600*beam);
-  const hum = t>3&&t<FIRE ? .32*Math.pow(c,.8)*(.8+.2*Math.sin(t*(8+c*20))) : 0;
+  const hum = t>CH&&t<FIRE ? .32*Math.pow(c,.8)*(.8+.2*Math.sin(t*(8+c*20))) : 0;
   lvl(BUS.hum.g.gain,hum*live,.03);
   lvl(BUS.o1.frequency,55+70*c); lvl(BUS.o2.frequency,110+150*c);
   lvl(BUS.hum.f.frequency,250+2400*c);
@@ -1113,7 +1137,7 @@ function audioLevels(t){
   lvl(BUS.sizzle.g.gain,.12*beam*(.7+.3*Math.sin(t*47))*live,.02);
   let rum = t>IMPACT ? .9*Math.exp(-(t-IMPACT)*.9) + (t<BEAM_END?.35:0) : 0;
   if(t>BEAM_END) rum += 1.1*Math.exp(-(t-BEAM_END)*.6);
-  if(t>3&&t<FIRE) rum += .25*c*c;
+  if(t>CH&&t<FIRE) rum += .25*c*c;
   lvl(BUS.rumble.g.gain,Math.min(1.4,rum)*live,.06);
 }
 function boom(f0,f1,dur,vol,noiseVol,cut){
@@ -1142,6 +1166,8 @@ function snd(name){
   if(name==='fire'){ whoosh(.45,.7); boom(180,45,.9,.8,.6,4000); }
   else if(name==='impact'){ boom(110,28,2.6,1.2,1.1,6000); whoosh(.6,.5); for(let i=0;i<6;i++) setTimeout(ping,i*35); }
   else if(name==='blast'){ boom(85,20,4.8,1.6,1.5,6000); whoosh(.8,.6); setTimeout(()=>{ if(soundOn&&playing) boom(60,18,3.5,1,1,2500); },260); for(let i=0;i<10;i++) setTimeout(ping,80+i*45); }
+  else if(name==='pulse'){ boom(70,40,.6,.5,.25,900); }
+  else if(name==='surge'){ whoosh(.5,.8); boom(140,35,1.8,1.1,.9,5000); }
   else if(name==='glass'){ const now=performance.now(); if(now-lastPing>18){ lastPing=now; ping(); } }
 }
 
@@ -1157,7 +1183,7 @@ new ResizeObserver(resize).observe(canvas); resize();
 
 let playing=true, speed=1, last=performance.now();
 const playBtn=document.getElementById('play'), head=document.getElementById('head'), track=document.getElementById('track'), tc=document.getElementById('tc');
-const beats=[...track.querySelectorAll('.beat')], BEATS=[0,2.6,7.05,7.5,10,DUR];
+const beats=[...track.querySelectorAll('.beat')], BEATS=[0,IDLE_END,FIRE,SURGE,BEAM_END,DUR];
 function fmt(x){ const m=Math.floor(x/60), sec=x-m*60; return String(m).padStart(2,'0')+':'+sec.toFixed(2).padStart(5,'0'); }
 function seek(t){ reset(); audioLive=false; const st=1/60; while(T<t-1e-6){ const d=Math.min(st,t-T); T+=d; update(d);} audioLive=true; }
 function frame(now){
